@@ -7,15 +7,14 @@ import { ProposalType } from "@snapshot-labs/snapshot.js/dist/sign/types";
 dotenv.config();
 
 async function main() {
-  // https://hub.snapshot.org";
-  const hub = "https://testnet.snapshot.org";
+
+  const hub = process.env.HUB;
+
   const client = new snapshot.Client712(hub);
   const pk: BytesLike = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY : "";
 
   const signingKey = new ethers.utils.SigningKey(pk);
   const web3 = new ethers.Wallet(signingKey);
-
-  console.log(proposals.payload.choices);
 
   await client.proposal(web3, web3.address, {
     space: proposals.space,

@@ -5,6 +5,7 @@ on: # rebuild any PRs and main branch changes
       - main
 
 env:
+  HUB: ${{ secrets.HUB }}
   PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
 
 jobs:
