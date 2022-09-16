@@ -4,8 +4,8 @@
   "space": "sdapw.eth",
   "type": "proposal",
   "payload": {
-    "name": "Gauge vote - Balancer 22/9/2022 - 5/10/2022",
-    "body": "Gauge vote for BAL inflation allocation.",
+    "name": "Gauge vote - Apwine 22/9/2022 - 5/10/2022",
+    "body": "Gauge vote for APW inflation allocation.",
     "discussion": "https://app.balancer.fi/#/vebal",
     "choices": [
         "AA_idleCvxFRAX3CRV-f - PT/FRAX3CRV-f",
