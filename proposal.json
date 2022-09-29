@@ -211,7 +211,7 @@
         "xdai-f-sgnoCRV",
         "xdai-f-x3CRV-gauge",
         "y",
-        "Fundraising gauge (Vyper)"
+        "fundraising-gauge-vyper"
     ],
     "start": 1664409600,
     "end": 1664794800,
