@@ -1,12 +1,12 @@
 {
   "version": "0.1.3",
-  "timestamp": "1663322604",
+  "timestamp": "1664409600",
   "space": "sdapw.eth",
   "type": "proposal",
   "payload": {
-    "name": "Gauge vote - Apwine 22/9/2022 - 5/10/2022",
+    "name": "Gauge vote - Apwine 6/10/2022 - 19/10/2022",
     "body": "Gauge vote for APW inflation allocation.",
-    "discussion": "https://app.balancer.fi/#/vebal",
+    "discussion": "https://app.apwine.fi/gauges?chainId=1",
     "choices": [
         "AA_idleCvxFRAX3CRV-f - PT/FRAX3CRV-f",
         "AA_idleCvxFRAX3CRV-f - PT/FYT",
@@ -51,9 +51,9 @@
         "yvcrv-ibEUR - PT/FYT",
         "yvcrv-ibEUR - PT/ibEUR+sEUR-f"
     ],
-    "start": 1663196400,
-    "end": 1663585200,
-    "snapshot": 15535777,
+    "start": 1664409600,
+    "end": 1664794800,
+    "snapshot": 15635279,
     "type": "weighted",
     "metadata": { "plugins": {} }
   }
