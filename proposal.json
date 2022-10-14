@@ -8,6 +8,8 @@
     "body": "Gauge vote for BAL inflation allocation.",
     "discussion": "https://app.balancer.fi/#/vebal",
         "choices": [
+          "sdBAL/BAL-WETH 80/20 LP",
+          "TetuBAL/BAL-WETH 80/20 LP",
           "33/33/33 graviAURA/auraBAL/WETH",
           "40/40/20 WBTC/DIGG/graviAURA",
           "50/25/25 OHM/DAI/WETH",
