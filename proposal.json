@@ -1,10 +1,10 @@
 {
   "version": "0.1.3",
-  "timestamp": "1666828800",
+  "timestamp": "1668038400",
   "space": "sdangle.eth",
   "type": "proposal",
   "payload": {
-    "name": "Gauge vote - Angle 3/11/2022 - 16/11/2022",
+    "name": "Gauge vote - Angle 17/11/2022 - 30/11/2022",
     "body": "Gauge vote for Angle inflation allocation.",
     "discussion": "https://app.angle.money/#/gauge",
          "choices": [
@@ -19,9 +19,9 @@
             "Uni-V3 agEUR/ETH LP",
             "Uni-V3 agEUR/USDC LP"
     ],
-    "start": 1666828800,
-    "end": 1667217600,
-    "snapshot": 15835687,
+    "start": 1668038400,
+    "end": 1668427200,
+    "snapshot": 15935900,
     "type": "weighted",
     "metadata": { "plugins": {} }
   }
