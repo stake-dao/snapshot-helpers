@@ -1,10 +1,10 @@
 {
   "version": "0.1.3",
-  "timestamp": "1675296000",
+  "timestamp": "1676505600",
   "space": "sdangle.eth",
   "type": "proposal",
   "payload": {
-    "name": "Gauge vote - ANGLE 9/2/2023 - 22/2/2023",
+    "name": "Gauge vote - ANGLE 23/2/2023 - 8/3/2023",
     "body": "Gauge vote for ANGLE inflation allocation.",
     "discussion": "https://votemarket.stakedao.org/votes",
         "choices": [
@@ -19,9 +19,9 @@
             "Uni-V3 agEUR/ETH LP",
             "Uni-V3 agEUR/USDC LP"
     ],
-    "start": 1675296000,
-    "end": 1675771200,
-    "snapshot": 16537407,
+    "start": 1676505600,
+    "end": 1676901600,
+    "snapshot": 16637575,
     "type": "weighted",
     "metadata": { "plugins": {} }
   }
