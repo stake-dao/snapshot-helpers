@@ -1,10 +1,10 @@
 {
   "version": "0.1.3",
-  "timestamp": "1680174000",
+  "timestamp": "1681340400",
   "space": "sdfxs.eth",
   "type": "proposal",
   "payload": {
-    "name": "Gauge vote - FXS 6/4/2023 - 19/4/2023",
+    "name": "Gauge vote - FXS 20/4/2023 - 3/5/2023",
     "body": "Gauge vote for FXS inflation allocation.",
     "discussion": "https://votemarket.stakedao.org/votes",
         "choices": [
@@ -65,9 +65,9 @@
             "Uniswap V3 FRAX/USDC",
             "Vesper Orbit FRAX"
     ],
-    "start": 1680174000,
-    "end": 1680526800,
-    "snapshot": 16939925,
+    "start": 1681340400,
+    "end": 1681736400,
+    "snapshot": 17035258,
     "type": "weighted",
     "metadata": { "plugins": {} }
   }
