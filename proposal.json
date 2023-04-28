@@ -1,7 +1,7 @@
 {
   "version": "0.1.3",
   "timestamp": "1682553600",
-  "space": "sdbal.eth",
+  "space": "sdcrv.eth",
   "type": "proposal",
   "payload": {
     "name": "Gauge vote - CRV 4/5/2023 - 17/5/2023",
