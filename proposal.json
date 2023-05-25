@@ -1,10 +1,10 @@
 {
   "version": "0.1.3",
-  "timestamp": "1683759600",
+  "timestamp": "1684972800",
   "space": "sdangle.eth",
   "type": "proposal",
   "payload": {
-    "name": "Gauge vote - ANGLE 18/5/2023 - 31/5/2023",
+    "name": "Gauge vote - ANGLE 1/6/2023 - 14/6/2023",
     "body": "Gauge vote for ANGLE inflation allocation.",
     "discussion": "https://votemarket.stakedao.org/votes",
         "choices": [
@@ -14,9 +14,9 @@
             "Curve Incentives",
             "Polygon agEUR/USDC"
     ],
-    "start": 1683759600,
-    "end": 1684155600,
-    "snapshot": 17233413,
+    "start": 1684972800,
+    "end": 1685365200,
+    "snapshot": 17332461,
     "type": "weighted",
     "metadata": { "plugins": {} }
   }
