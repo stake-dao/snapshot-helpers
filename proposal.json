@@ -1,11 +1,11 @@
 {
     "version": "0.1.3",
     "timestamp": "1692230400",
-    "space": "sdcrv.eth",
+    "space": "sdbal.eth",
     "type": "proposal",
     "payload": {
-        "name": "Gauge vote CRV - 24/8/2023 - 6/9/2023",
-        "body": "Gauge vote for CRV inflation allocation.",
+        "name": "Gauge vote BAL - 24/8/2023 - 6/9/2023",
+        "body": "Gauge vote for BAL inflation allocation.",
         "discussion": "https://votemarket.stakedao.org/votes",
         "choices": [
             "ankrETH/wstETH - 0xbf65b3fA6c20876…48",
