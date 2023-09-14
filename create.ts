@@ -144,7 +144,7 @@ const main = async () => {
     }
 
     // Check if we are at least 10 days after the last proposal
-    // Because all our gauge votes are bi-weekly
+    // Because all our gauge votes are bi-monthly
     if (lastGaugeProposal.created + (10 * 86400) > now) {
       continue;
     }
