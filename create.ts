@@ -1,6 +1,5 @@
 import * as dotenv from "dotenv";
 import { BytesLike, ethers } from "ethers";
-import * as proposals from "./proposal.json"; // This import style requires "esModuleInterop", see "side notes"
 import snapshot from "@snapshot-labs/snapshot.js";
 import { request, gql } from 'graphql-request'
 import moment from "moment";
@@ -120,18 +119,20 @@ const getLastGaugeProposal = async (space: string) => {
 
 const main = async () => {
 
-  /*const hub = process.env.HUB;
+  const hub = process.env.HUB;
 
   const client = new snapshot.Client712(hub);
   const pk: BytesLike = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY : "";
 
   const signingKey = new ethers.utils.SigningKey(pk);
-  const web3 = new ethers.Wallet(signingKey);*/
+  const web3 = new ethers.Wallet(signingKey);
 
   const now = moment().unix();
-  const day = moment().date();
-  const month = moment().month();
-  const year = moment().year();
+  
+  const startProposalDate = moment().add(7, "days");
+  const day = startProposalDate.date();
+  const month = startProposalDate.month() + 1;
+  const year = startProposalDate.year();
 
   const blockTimestamp = moment().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0).utc(false).unix()
   const snapshotBlock = await getBlockByTimestamp(blockTimestamp);
@@ -145,7 +146,8 @@ const main = async () => {
 
     // Check if we are at least 10 days after the last proposal
     // Because all our gauge votes are bi-monthly
-    if (lastGaugeProposal.created + (10 * 86400) > now) {
+    const diff = space === "sdpendle.eth" ? 24 : 10;
+    if (lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
     }
 
@@ -174,27 +176,14 @@ const main = async () => {
       continue;
     }
 
-    const endProposal = moment().add(space === "sdpendle.eth" ? 27 : 13, 'days');
+    const endProposal = moment(startProposalDate).add(space === "sdpendle.eth" ? 27 : 13, 'days');
     const dayEnd = endProposal.date();
-    const monthEnd = endProposal.month();
+    const monthEnd = endProposal.month() + 1;
     const yearEnd = endProposal.year();
 
     const label = space.replace("sd", "").replace(".eth", "").toUpperCase();
 
-    /*await client.proposal(web3, web3.address, {
-      space: space,
-      type: "weighted",
-      title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
-      body: "Gauge vote for " + label + " inflation allocation.",
-      discussion: "https://votemarket.stakedao.org/votes",
-      choices: gauges,
-      start: startProposal,
-      end: startProposal + 4 * 86400, // 4 days after
-      snapshot: proposals.payload.snapshot, // 18030841
-      plugins: JSON.stringify({}),
-    });*/
-
-    console.log({
+    await client.proposal(web3, web3.address, {
       space: space,
       type: "weighted",
       title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
@@ -206,7 +195,7 @@ const main = async () => {
       snapshot: snapshotBlock, // 18030841
       plugins: JSON.stringify({}),
     });
-  }
+  }  
 }
 
 // We recommend this pattern to be able to use async/await everywhere
