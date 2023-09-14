@@ -14,6 +14,11 @@ const extractAddress = (address: string): string => {
   return address.substring(0, 17) + "…" + address.substring(address.length - 2);
 }
 
+const getBlockByTimestamp = async (timestamp: number): Promise<number> => {
+  const data = await axios.get("https://coins.llama.fi/block/ethereum/" + timestamp);
+  return data.data.height;
+}
+
 const getCurveGauges = async (): Promise<string[]> => {
   const data = await axios.get("https://api.curve.fi/api/getAllGauges");
   const gaugesMap = data.data.data;
@@ -52,6 +57,9 @@ const getAngleGauges = async (): Promise<string[]> => {
 
   const response: string[] = [];
   for (const gauge of Object.keys(gauges)) {
+    if(gauges[gauge].deprecated) {
+      continue;
+    }
     response.push(gauges[gauge].name + " - " + extractAddress(gauges[gauge].address));
   }
 
@@ -83,7 +91,6 @@ const getPendleGauges = async (): Promise<string[]> => {
     response.push(name + " - " + gauge.pt.chainId + "-" + gauge.address);
   }
 
-  console.log(response);
   return response;
 };
 
@@ -113,18 +120,22 @@ const getLastGaugeProposal = async (space: string) => {
 
 const main = async () => {
 
-  const hub = process.env.HUB;
+  /*const hub = process.env.HUB;
 
   const client = new snapshot.Client712(hub);
   const pk: BytesLike = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY : "";
 
   const signingKey = new ethers.utils.SigningKey(pk);
-  const web3 = new ethers.Wallet(signingKey);
+  const web3 = new ethers.Wallet(signingKey);*/
 
   const now = moment().unix();
-  const day = moment().day();
+  const day = moment().date();
   const month = moment().month();
-  const year = moment().year()
+  const year = moment().year();
+
+  const blockTimestamp = moment().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0).utc(false).unix()
+  const snapshotBlock = await getBlockByTimestamp(blockTimestamp);
+  const startProposal = blockTimestamp - 3600;
 
   for (const space of SPACES) {
     const lastGaugeProposal = await getLastGaugeProposal(space);
@@ -164,22 +175,35 @@ const main = async () => {
     }
 
     const endProposal = moment().add(space === "sdpendle.eth" ? 27 : 13, 'days');
-    const dayEnd = endProposal.day();
+    const dayEnd = endProposal.date();
     const monthEnd = endProposal.month();
     const yearEnd = endProposal.year();
 
     const label = space.replace("sd", "").replace(".eth", "").toUpperCase();
 
-    await client.proposal(web3, web3.address, {
+    /*await client.proposal(web3, web3.address, {
       space: space,
       type: "weighted",
       title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
       body: "Gauge vote for " + label + " inflation allocation.",
       discussion: "https://votemarket.stakedao.org/votes",
       choices: gauges,
-      start: proposals.payload.start,
-      end: proposals.payload.end,
+      start: startProposal,
+      end: startProposal + 4 * 86400, // 4 days after
       snapshot: proposals.payload.snapshot, // 18030841
+      plugins: JSON.stringify({}),
+    });*/
+
+    console.log({
+      space: space,
+      type: "weighted",
+      title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
+      body: "Gauge vote for " + label + " inflation allocation.",
+      discussion: "https://votemarket.stakedao.org/votes",
+      choices: gauges,
+      start: startProposal,
+      end: startProposal + 4 * 86400 + 86400 / 2, // 4.5 days after
+      snapshot: snapshotBlock, // 18030841
       plugins: JSON.stringify({}),
     });
   }
@@ -187,7 +211,7 @@ const main = async () => {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-getPendleGauges().catch((error) => {
+main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
