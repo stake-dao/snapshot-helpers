@@ -135,7 +135,7 @@ const main = async () => {
   const year = startProposalDate.year();
 
   const blockTimestamp = moment().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0).utc(false).unix()
-  const snapshotBlock = await getBlockByTimestamp(blockTimestamp);
+  const snapshotBlock = await getBlockByTimestamp(blockTimestamp - (2*3600));
   const startProposal = blockTimestamp - 3600;
 
   for (const space of SPACES) {
