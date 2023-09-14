@@ -1,8 +1,6 @@
-on: # rebuild any PRs and main branch changes
-  pull_request:
-  push:
-    branches:
-      - main
+on: 
+  schedule:
+    - cron: '0 0 * * 4'
 
 env:
   HUB: ${{ secrets.HUB }}
