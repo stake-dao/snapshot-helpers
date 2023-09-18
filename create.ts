@@ -36,15 +36,37 @@ const getCurveGauges = async (): Promise<string[]> => {
 };
 
 const getBalGauges = async (): Promise<string[]> => {
-  let data = await axios.get("https://raw.githubusercontent.com/balancer-labs/frontend-v2/master/src/data/voting-gauges.json");
-  const gauges = data.data.filter(
-    (item: any) =>
-      item.network !== 5 && item.network !== 42 && item.isKilled == false,
-  );
+
+  const query = gql`{
+      veBalGetVotingList
+      {
+        id
+        address
+        chain
+        type
+        symbol
+        gauge {
+          address
+          isKilled
+          relativeWeightCap
+          addedTimestamp
+          childGaugeAddress
+        }
+        tokens {
+          address
+          logoURI
+          symbol
+          weight
+        }
+      }
+}`;
+
+  const data = (await request("https://api-v3.balancer.fi/", query)) as any;
+  const gauges = data.veBalGetVotingList.filter((item: any) => !item.gauge.isKilled);
 
   const response: string[] = [];
   for (const gauge of gauges) {
-    response.push(gauge.pool.symbol + " - " + extractAddress(gauge.address));
+    response.push(gauge.symbol + " - " + extractAddress(gauge.gauge.address));
   }
 
   return response;
