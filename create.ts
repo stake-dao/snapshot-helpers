@@ -101,29 +101,33 @@ const getFraxGauges = async (): Promise<string[]> => {
 
 const getPendleGauges = async (): Promise<string[]> => {
   const SIZE = 100;
-  let run = true;
-  let skip = 0;
   const response: string[] = [];
 
-  do {
-    const data = await axios.get(`https://api-v2.pendle.finance/core/v1/1/markets?limit=${SIZE}&is_expired=false&skip=${skip}`);
-    const gauges = data.data.results;
-
-    if (gauges.length === SIZE) {
-      skip += SIZE;
-    } else {
-      run = false;
-    }
-
-    for (const gauge of gauges) {
-      let name = gauge.pt.name;
-      if (name.indexOf("PT ") > -1) {
-        name = name.replace("PT ", "");
+  for(const chainId of [1, 42161]) {
+    
+    let run = true;
+    let skip = 0;
+  
+    do {
+      const data = await axios.get(`https://api-v2.pendle.finance/core/v1/${chainId}/markets?limit=${SIZE}&is_expired=false&skip=${skip}`);
+      const gauges = data.data.results;
+  
+      if (gauges.length === SIZE) {
+        skip += SIZE;
+      } else {
+        run = false;
       }
-      response.push(name + " - " + gauge.pt.chainId + "-" + gauge.address);
+  
+      for (const gauge of gauges) {
+        let name = gauge.pt.name;
+        if (name.indexOf("PT ") > -1) {
+          name = name.replace("PT ", "");
+        }
+        response.push(name + " - " + gauge.pt.chainId + "-" + gauge.address);
+      }
     }
+    while (run);
   }
-  while (run);
 
   return response;
 };
