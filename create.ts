@@ -6,11 +6,14 @@ import moment from "moment";
 import axios from "axios";
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth"];
+const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
+const SEP_START_ADDRESS = "- 0x";
+const SEP_DOT = "…";
 
 dotenv.config();
 
 const extractAddress = (address: string): string => {
-  return address.substring(0, 17) + "…" + address.substring(address.length - 2);
+  return address.substring(0, 17) + SEP_DOT + address.substring(address.length - 2);
 }
 
 const getBlockByTimestamp = async (timestamp: number): Promise<number> => {
@@ -156,6 +159,56 @@ const getLastGaugeProposal = async (space: string) => {
   return null;
 };
 
+const vote = async (gauges: string[], proposalId: string) => {
+
+  let choiceIndex = -1;
+  for (let i = 0; i < gauges.length; i++) {
+    const gauge = gauges[i];
+    const startIndex = gauge.indexOf(SEP_START_ADDRESS);
+    if (startIndex === -1) {
+      continue;
+    }
+
+    const endIndex = gauge.indexOf(SEP_DOT, startIndex);
+    if (endIndex === -1) {
+      continue;
+    }
+
+    const startAddress = gauge.substring(startIndex + SEP_START_ADDRESS.length - 2, endIndex);
+    if (SDCRV_CRV_GAUGE.toLowerCase().indexOf(startAddress.toLowerCase()) === -1) {
+      continue;
+    }
+
+    choiceIndex = i;
+    break;
+  }
+
+  if (choiceIndex === -1) {
+    console.log("Impossible to find sdCRV/CRV gauge. Proposal id : ", proposalId);
+    return;
+  }
+
+  const hub = process.env.HUB;
+
+  const client = new snapshot.Client712(hub);
+  const pk: BytesLike = process.env.VOTE_PRIVATE_KEY ? process.env.VOTE_PRIVATE_KEY : "";
+
+  const signingKey = new ethers.utils.SigningKey(pk);
+  const web3 = new ethers.Wallet(signingKey);
+
+  try {
+    await client.vote(web3, web3.address, {
+      space: 'sdcrv.eth',
+      proposal: proposalId,
+      type: 'weighted',
+      choice: JSON.stringify({ [(choiceIndex + 1).toString()]: 1 }),
+    });
+  }
+  catch (e) {
+    console.log(e);
+  }
+};
+
 const main = async () => {
 
   const hub = process.env.HUB;
@@ -222,18 +275,30 @@ const main = async () => {
 
     const label = space.replace("sd", "").replace(".eth", "").toUpperCase();
 
-    await client.proposal(web3, web3.address, {
-      space: space,
-      type: "weighted",
-      title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
-      body: "Gauge vote for " + label + " inflation allocation.",
-      discussion: "https://votemarket.stakedao.org/votes",
-      choices: gauges,
-      start: startProposal,
-      end: startProposal + 4 * 86400 + 86400 / 2, // 4.5 days after
-      snapshot: snapshotBlock, // 18030841
-      plugins: JSON.stringify({}),
-    });
+    try {
+      const receipt = await client.proposal(web3, web3.address, {
+        space: space,
+        type: "weighted",
+        title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
+        body: "Gauge vote for " + label + " inflation allocation.",
+        discussion: "https://votemarket.stakedao.org/votes",
+        choices: gauges,
+        start: startProposal,
+        end: startProposal + 4 * 86400 + 86400 / 2, // 4.5 days after
+        snapshot: snapshotBlock, // 18030841
+        plugins: JSON.stringify({}),
+      }) as any;
+
+      if (space !== "sdcrv.eth") {
+        continue;
+      }
+
+      // Push a vote from PK for sdCRV/CRV gauge
+      await vote(gauges, receipt.id as string);
+    }
+    catch (e) {
+      console.error(e);
+    }
   }  
 }
 
