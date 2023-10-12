@@ -192,16 +192,17 @@ const vote = async (gauges: string[], proposalId: string) => {
 
   const client = new snapshot.Client712(hub);
   const pk: BytesLike = process.env.VOTE_PRIVATE_KEY ? process.env.VOTE_PRIVATE_KEY : "";
+  const web3 = new ethers.Wallet(pk);
 
-  const signingKey = new ethers.utils.SigningKey(pk);
-  const web3 = new ethers.Wallet(signingKey);
+  const choice: any = {};
+  choice[(choiceIndex + 1).toString()] = 1;
 
   try {
     await client.vote(web3, web3.address, {
       space: 'sdcrv.eth',
       proposal: proposalId,
       type: 'weighted',
-      choice: JSON.stringify({ [(choiceIndex + 1).toString()]: 1 }),
+      choice,
     });
   }
   catch (e) {
