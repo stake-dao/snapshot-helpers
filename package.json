@@ -12,6 +12,7 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "start": "npx ts-node create.ts"
+    "start": "npx ts-node create.ts",
+    "tmp": "npx ts-node tmp.ts"
   }
 }
