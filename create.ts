@@ -239,7 +239,7 @@ const main = async () => {
 
     // Check if we are at least 10 days after the last proposal
     // Because all our gauge votes are bi-monthly
-    const diff = space === "sdpendle.eth" ? 24 : 10;
+    const diff = 10;
     if (lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
     }
@@ -269,7 +269,7 @@ const main = async () => {
       continue;
     }
 
-    const endProposal = moment(startProposalDate).add(space === "sdpendle.eth" ? 27 : 13, 'days');
+    const endProposal = moment(startProposalDate).add(13, 'days');
     const dayEnd = endProposal.date();
     const monthEnd = endProposal.month() + 1;
     const yearEnd = endProposal.year();
