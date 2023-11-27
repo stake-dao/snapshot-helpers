@@ -285,8 +285,8 @@ const main = async () => {
         discussion: "https://votemarket.stakedao.org/votes",
         choices: gauges,
         start: startProposal,
-        end: startProposal + 4 * 86400 + 86400 / 2, // 4.5 days after
-        snapshot: snapshotBlock, // 18030841
+        end: startProposal + (4 * 86400) + (86400 / 2) + 3600, // 4.5 + 1h days after
+        snapshot: snapshotBlock,
         plugins: JSON.stringify({}),
       }) as any;
 
