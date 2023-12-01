@@ -4,8 +4,9 @@ import snapshot from "@snapshot-labs/snapshot.js";
 import { request, gql } from 'graphql-request'
 import moment from "moment";
 import axios from "axios";
+import * as chains from 'viem/chains'
 
-const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth"];
+const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth"];
 const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
 const SEP_START_ADDRESS = "- 0x";
 const SEP_DOT = "…";
@@ -135,6 +136,31 @@ const getPendleGauges = async (): Promise<string[]> => {
   return response;
 };
 
+const getPancakeGauges = async (): Promise<string[]> => {
+  const data = await axios.get(`https://pancakeswap.finance/api/gauges/getAllGauges?inCap=true&testnet=`);
+  const gauges = data.data.data;
+
+  const response: string[] = [];
+
+  for(const gauge of gauges) {
+    response.push(gauge.pairName + " / " + getChainIdName(gauge.chainId) + " - " + extractAddress(gauge.address));
+  }
+
+  return response;
+};
+
+const getChainIdName = (chainId: number): string => {
+  for (const chain of Object.values(chains)) {
+    if ('id' in chain) {
+      if (chain.id === chainId) {
+        return chain.name;
+      }
+    }
+  }
+
+  return chainId.toString();
+}
+
 const getLastGaugeProposal = async (space: string) => {
   const query = gql`{
       proposals(
@@ -262,6 +288,9 @@ const main = async () => {
         break;
       case "sdpendle.eth":
         gauges = await getPendleGauges();
+        break;
+      case "sdcake.eth":
+        gauges = await getPancakeGauges();
         break;
     }
 
