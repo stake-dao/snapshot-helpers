@@ -259,14 +259,11 @@ const main = async () => {
 
   for (const space of SPACES) {
     const lastGaugeProposal = await getLastGaugeProposal(space);
-    if (!lastGaugeProposal) {
-      continue;
-    }
-
+    
     // Check if we are at least 10 days after the last proposal
     // Because all our gauge votes are bi-monthly
     const diff = 10;
-    if (lastGaugeProposal.created + (diff * 86400) > now) {
+    if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
     }
 
