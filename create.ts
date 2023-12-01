@@ -306,7 +306,7 @@ const main = async () => {
       const receipt = await client.proposal(web3, web3.address, {
         space: space,
         type: "weighted",
-        title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
+        title: space === "sdcake.eth" ? "Gauge vote CAKE - 7/12/2023 - 21/12/2023" : "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
         body: "Gauge vote for " + label + " inflation allocation.",
         discussion: "https://votemarket.stakedao.org/votes",
         choices: gauges,
