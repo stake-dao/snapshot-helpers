@@ -7,6 +7,14 @@ import axios from "axios";
 import * as chains from 'viem/chains'
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth"];
+const NETWORK_BY_SPACE = {
+  "sdcrv.eth": "ethereum",
+  "sdfxs.eth": "ethereum",
+  "sdangle.eth": "ethereum",
+  "sdbal.eth": "ethereum",
+  "sdpendle.eth": "ethereum",
+  "sdcake.eth": "bsc",
+};
 const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
 const SEP_START_ADDRESS = "- 0x";
 const SEP_DOT = "…";
@@ -17,8 +25,8 @@ const extractAddress = (address: string): string => {
   return address.substring(0, 17) + SEP_DOT + address.substring(address.length - 2);
 }
 
-const getBlockByTimestamp = async (timestamp: number): Promise<number> => {
-  const data = await axios.get("https://coins.llama.fi/block/ethereum/" + timestamp);
+const getBlockByTimestamp = async (network: string, timestamp: number): Promise<number> => {
+  const data = await axios.get("https://coins.llama.fi/block/" + network + "/" + timestamp);
   return data.data.height;
 }
 
@@ -254,10 +262,11 @@ const main = async () => {
   const year = startProposalDate.year();
 
   const blockTimestamp = moment().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0).utc(false).unix()
-  const snapshotBlock = await getBlockByTimestamp(blockTimestamp - (2*3600));
   const startProposal = blockTimestamp - 3600;
 
   for (const space of SPACES) {
+    const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], blockTimestamp - (2*3600));
+    
     const lastGaugeProposal = await getLastGaugeProposal(space);
     
     // Check if we are at least 10 days after the last proposal
