@@ -313,7 +313,7 @@ const main = async () => {
     const network = space === "sdcake.eth" ? '56' : '1';
 
     try {
-      const receipt = await client.proposal(web3, web3.address, {
+      const proposal = {
         space: space,
         type: "weighted",
         title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
@@ -325,7 +325,8 @@ const main = async () => {
         snapshot: snapshotBlock,
         plugins: JSON.stringify({}),
         network,
-      }) as any;
+      } as any;
+      const receipt = await client.proposal(web3, web3.address, proposal) as any;
 
       if (space !== "sdcrv.eth") {
         continue;

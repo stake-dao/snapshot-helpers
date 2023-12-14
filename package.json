@@ -1,12 +1,12 @@
 {
   "dependencies": {
-    "@snapshot-labs/snapshot.js": "^0.4.19",
+    "@snapshot-labs/snapshot.js": "^0.9.7",
+    "@types/node": "^20.10.4",
     "axios": "^1.5.0",
     "dotenv": "^16.0.1",
     "ethers": "^5.6.9",
     "graphql": "^16.8.0",
     "graphql-request": "^6.1.0",
-    "hardhat": "^2.10.2",
     "moment": "^2.29.4",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2",
