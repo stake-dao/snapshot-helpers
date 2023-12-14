@@ -324,7 +324,9 @@ const main = async () => {
         end: startProposal + (4 * 86400) + (86400 / 2) + 3600, // 4.5 + 1h days after
         snapshot: snapshotBlock,
         plugins: JSON.stringify({}),
-        network,
+        metadata: {
+          network
+        },
       } as any;
       const receipt = await client.proposal(web3, web3.address, proposal) as any;
 
