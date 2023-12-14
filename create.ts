@@ -247,6 +247,7 @@ const vote = async (gauges: string[], proposalId: string) => {
 const main = async () => {
 
   const hub = process.env.HUB;
+  console.log("hub", hub);
 
   const client = new snapshot.Client712(hub);
   const pk: BytesLike = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY : "";
