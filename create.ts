@@ -310,6 +310,7 @@ const main = async () => {
     const yearEnd = endProposal.year();
 
     const label = space.replace("sd", "").replace(".eth", "").toUpperCase();
+    const network = space === "sdcake.eth" ? '56' : '1';
 
     try {
       const receipt = await client.proposal(web3, web3.address, {
@@ -323,6 +324,7 @@ const main = async () => {
         end: startProposal + (4 * 86400) + (86400 / 2) + 3600, // 4.5 + 1h days after
         snapshot: snapshotBlock,
         plugins: JSON.stringify({}),
+        network,
       }) as any;
 
       if (space !== "sdcrv.eth") {
