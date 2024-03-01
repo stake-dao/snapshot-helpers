@@ -6,7 +6,7 @@ import moment from "moment";
 import axios from "axios";
 import * as chains from 'viem/chains'
 
-const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth"];
+const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth"];
 const NETWORK_BY_SPACE = {
   "sdcrv.eth": "ethereum",
   "sdfxs.eth": "ethereum",
@@ -14,6 +14,7 @@ const NETWORK_BY_SPACE = {
   "sdbal.eth": "ethereum",
   "sdpendle.eth": "ethereum",
   "sdcake.eth": "bsc",
+  "sdfxn.eth": "ethereum",
 };
 const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
 const SEP_START_ADDRESS = "- 0x";
@@ -169,6 +170,20 @@ const getChainIdName = (chainId: number): string => {
   return chainId.toString();
 }
 
+const getFxnGauges = async (): Promise<string[]> => {
+  const data = await axios.get("https://api.aladdin.club/api1/get_fx_gauge_list");
+  const gaugesMap = data.data.data;
+
+  const response: string[] = [];
+  for (const key of Object.keys(gaugesMap)) {
+    const gauge = gaugesMap[key].gauge as string;
+    const name = gaugesMap[key].name as string;
+    response.push(name + " - " + extractAddress(gauge));
+  }
+
+  return response;
+};
+
 const getLastGaugeProposal = async (space: string) => {
   const query = gql`{
       proposals(
@@ -297,6 +312,9 @@ const main = async () => {
         break;
       case "sdcake.eth":
         gauges = await getPancakeGauges();
+        break;
+      case "sdfxn.eth":
+        gauges = await getFxnGauges();
         break;
     }
 
