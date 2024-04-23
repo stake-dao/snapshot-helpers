@@ -92,7 +92,7 @@ const getAngleGauges = async (): Promise<string[]> => {
 
   const response: string[] = [];
   for (const gauge of Object.keys(gauges)) {
-    if(gauges[gauge].deprecated) {
+    if (gauges[gauge].deprecated) {
       continue;
     }
     response.push(gauges[gauge].name + " - " + extractAddress(gauges[gauge].address));
@@ -114,30 +114,37 @@ const getFraxGauges = async (): Promise<string[]> => {
 };
 
 const getPendleGauges = async (): Promise<string[]> => {
+
+  const {data: chainIds} = await axios.get("https://raw.githubusercontent.com/DefiLlama/chainlist/main/constants/chainIds.json");
+
   const SIZE = 100;
   const response: string[] = [];
 
-  for(const chainId of [1, 42161]) {
-    
+  for(const chainId of Object.keys(chainIds)) {
     let run = true;
     let skip = 0;
-  
+
     do {
-      const data = await axios.get(`https://api-v2.pendle.finance/core/v1/${chainId}/markets?limit=${SIZE}&is_expired=false&skip=${skip}`);
-      const gauges = data.data.results;
-  
-      if (gauges.length === SIZE) {
-        skip += SIZE;
-      } else {
-        run = false;
-      }
-  
-      for (const gauge of gauges) {
-        let name = gauge.pt.name;
-        if (name.indexOf("PT ") > -1) {
-          name = name.replace("PT ", "");
+      try {
+        const data = await axios.get(`https://api-v2.pendle.finance/core/v1/${chainId}/markets?limit=${SIZE}&is_expired=false&skip=${skip}`);
+        const gauges = data.data.results;
+
+        if (gauges.length === SIZE) {
+          skip += SIZE;
+        } else {
+          run = false;
         }
-        response.push(name + " - " + gauge.pt.chainId + "-" + gauge.address);
+
+        for (const gauge of gauges) {
+          let name = gauge.pt.name;
+          if (name.indexOf("PT ") > -1) {
+            name = name.replace("PT ", "");
+          }
+          response.push(name + " - " + gauge.pt.chainId + "-" + gauge.address);
+        }
+      }
+      catch (e) {
+        run = false;
       }
     }
     while (run);
@@ -152,7 +159,7 @@ const getPancakeGauges = async (): Promise<string[]> => {
 
   const response: string[] = [];
 
-  for(const gauge of gauges) {
+  for (const gauge of gauges) {
     response.push(gauge.pairName + " / " + getChainIdName(gauge.chainId) + " - " + extractAddress(gauge.address));
   }
 
@@ -271,7 +278,7 @@ const main = async () => {
   const web3 = new ethers.Wallet(signingKey);
 
   const now = moment().unix();
-  
+
   const startProposalDate = moment().add(7, "days");
   const day = startProposalDate.date();
   const month = startProposalDate.month() + 1;
@@ -281,10 +288,10 @@ const main = async () => {
   const startProposal = blockTimestamp - 3600;
 
   for (const space of SPACES) {
-    const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], blockTimestamp - (2*3600));
-    
+    const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], blockTimestamp - (2 * 3600));
+
     const lastGaugeProposal = await getLastGaugeProposal(space);
-    
+
     // Check if we are at least 10 days after the last proposal
     // Because all our gauge votes are bi-monthly
     const diff = 10;
@@ -360,7 +367,7 @@ const main = async () => {
     catch (e) {
       console.error(e);
     }
-  }  
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
