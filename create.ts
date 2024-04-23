@@ -17,6 +17,7 @@ const NETWORK_BY_SPACE = {
   "sdfxn.eth": "ethereum",
 };
 const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
+const ARBITRUM_VSDCRV_GAUGE = "0x25e822b65a58ce1a53dbc327d4fa489351fb1df0";
 const SEP_START_ADDRESS = "- 0x";
 const SEP_DOT = "…";
 
@@ -208,7 +209,7 @@ const getLastGaugeProposal = async (space: string) => {
   return null;
 };
 
-const vote = async (gauges: string[], proposalId: string) => {
+const vote = async (gauges: string[], proposalId: string, pkStr: string, targetGaugeAddress: string) => {
 
   let choiceIndex = -1;
   for (let i = 0; i < gauges.length; i++) {
@@ -224,7 +225,7 @@ const vote = async (gauges: string[], proposalId: string) => {
     }
 
     const startAddress = gauge.substring(startIndex + SEP_START_ADDRESS.length - 2, endIndex);
-    if (SDCRV_CRV_GAUGE.toLowerCase().indexOf(startAddress.toLowerCase()) === -1) {
+    if (targetGaugeAddress.toLowerCase().indexOf(startAddress.toLowerCase()) === -1) {
       continue;
     }
 
@@ -233,14 +234,14 @@ const vote = async (gauges: string[], proposalId: string) => {
   }
 
   if (choiceIndex === -1) {
-    console.log("Impossible to find sdCRV/CRV gauge. Proposal id : ", proposalId);
+    console.log("Impossible to find target gauge. Proposal id : ", proposalId, targetGaugeAddress);
     return;
   }
 
   const hub = process.env.HUB;
 
   const client = new snapshot.Client712(hub);
-  const pk: BytesLike = process.env.VOTE_PRIVATE_KEY ? process.env.VOTE_PRIVATE_KEY : "";
+  const pk: BytesLike = pkStr;
   const web3 = new ethers.Wallet(pk);
 
   const choice: any = {};
@@ -352,8 +353,9 @@ const main = async () => {
         continue;
       }
 
-      // Push a vote from PK for sdCRV/CRV gauge
-      await vote(gauges, receipt.id as string);
+      // Push a vote on mainnet from PK for sdCRV/CRV gauge
+      await vote(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
+      await vote(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
     }
     catch (e) {
       console.error(e);
