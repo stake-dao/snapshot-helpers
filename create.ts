@@ -87,18 +87,23 @@ const getBalGauges = async (): Promise<string[]> => {
 };
 
 const getAngleGauges = async (): Promise<string[]> => {
-  const data = await axios.get("https://api.angle.money/v1/dao");
-  const gauges = data.data.gauges.list;
+  try {
+    const data = await axios.get("https://api.angle.money/v1/dao");
+    const gauges = data.data.gauges.list;
 
-  const response: string[] = [];
-  for (const gauge of Object.keys(gauges)) {
-    if (gauges[gauge].deprecated) {
-      continue;
+    const response: string[] = [];
+    for (const gauge of Object.keys(gauges)) {
+      if (gauges[gauge].deprecated) {
+        continue;
+      }
+      response.push(gauges[gauge].name + " - " + extractAddress(gauges[gauge].address));
     }
-    response.push(gauges[gauge].name + " - " + extractAddress(gauges[gauge].address));
-  }
 
-  return response;
+    return response;
+  }
+  catch (e) {
+    return [];
+  }
 };
 
 const getFraxGauges = async (): Promise<string[]> => {
