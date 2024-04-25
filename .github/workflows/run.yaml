@@ -7,6 +7,7 @@ env:
   HUB: ${{ secrets.HUB }}
   PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
   VOTE_PRIVATE_KEY: ${{ secrets.VOTE_PRIVATE_KEY }}
+  ARBITRUM_VOTE_PRIVATE_KEY: ${{ secrets.ARBITRUM_VOTE_PRIVATE_KEY }}
 
 jobs:
   build: # make sure build/ci work properly

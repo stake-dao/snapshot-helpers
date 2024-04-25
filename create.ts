@@ -8,8 +8,6 @@ import * as chains from 'viem/chains'
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth"];
 const NETWORK_BY_SPACE = {
-  "sdcrv.eth": "ethereum",
-  "sdfxs.eth": "ethereum",
   "sdangle.eth": "ethereum",
   "sdbal.eth": "ethereum",
   "sdpendle.eth": "ethereum",
@@ -362,12 +360,15 @@ const main = async () => {
 
       // Push a vote on mainnet from PK for sdCRV/CRV gauge
       await vote(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
-      await vote(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+      
     }
     catch (e) {
       console.error(e);
     }
   }
+
+  await vote(await getCurveGauges(), "0x85f094c898e705538fea22a37e0ebec4f67e939d9fe9d149ad574c80a6dbe8fc" as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+  
 }
 
 // We recommend this pattern to be able to use async/await everywhere
