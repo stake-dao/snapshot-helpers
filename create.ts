@@ -6,7 +6,7 @@ import moment from "moment";
 import axios from "axios";
 import * as chains from 'viem/chains'
 
-const SPACES = ["sdpendle.eth"];
+const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth"];
 const NETWORK_BY_SPACE = {
   "sdcrv.eth": "ethereum",
   "sdfxs.eth": "ethereum",
