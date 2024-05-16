@@ -299,10 +299,10 @@ const main = async () => {
 
     // Check if we are at least 10 days after the last proposal
     // Because all our gauge votes are bi-monthly
-    const diff = 10;
+    /*const diff = 10;
     if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
-    }
+    }*/
 
     // Fetch gauges corresponding to space
     let gauges: string[] = [];
