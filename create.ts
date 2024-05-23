@@ -300,7 +300,8 @@ const main = async () => {
     // Check if we are at least 10 days after the last proposal
     // Because all our gauge votes are bi-monthly
     // Except for pendle, every week
-    const diff = space.toLowerCase() === "sdpendle.eth".toLowerCase() ? 6 : 10;
+    const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
+    const diff = isPendle ? 6 : 10;
     if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
     }
@@ -336,7 +337,7 @@ const main = async () => {
       continue;
     }
 
-    const endProposal = moment(startProposalDate).add(13, 'days');
+    const endProposal = moment(startProposalDate).add(isPendle ? 6 : 13, 'days');
     const dayEnd = endProposal.date();
     const monthEnd = endProposal.month() + 1;
     const yearEnd = endProposal.year();
