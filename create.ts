@@ -6,7 +6,7 @@ import moment from "moment";
 import axios from "axios";
 import * as chains from 'viem/chains'
 
-const SPACES = ["sdbal.eth"];
+const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth"];
 const NETWORK_BY_SPACE = {
   "sdcrv.eth": "ethereum",
   "sdfxs.eth": "ethereum",
@@ -300,7 +300,7 @@ const main = async () => {
     // Check if we are at least 10 days after the last proposal
     // Because all our gauge votes are bi-monthly
     // Except for pendle, every week
-    const diff = space.toLowerCase() === "sdpendle.eth".toLowerCase() ? 6 : 8;
+    const diff = space.toLowerCase() === "sdpendle.eth".toLowerCase() ? 6 : 10;
     if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
     }
