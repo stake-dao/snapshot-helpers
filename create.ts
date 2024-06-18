@@ -5,8 +5,9 @@ import { request, gql } from 'graphql-request'
 import moment from "moment";
 import axios from "axios";
 import * as chains from 'viem/chains'
+import { createPublicClient, http, parseAbi } from "viem";
 
-const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth"];
+const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth"];
 const NETWORK_BY_SPACE = {
   "sdcrv.eth": "ethereum",
   "sdfxs.eth": "ethereum",
@@ -15,6 +16,7 @@ const NETWORK_BY_SPACE = {
   "sdpendle.eth": "ethereum",
   "sdcake.eth": "bsc",
   "sdfxn.eth": "ethereum",
+  "sdapw.eth": "ethereum",
 };
 const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
 const ARBITRUM_VSDCRV_GAUGE = "0x25e822b65a58ce1a53dbc327d4fa489351fb1df0";
@@ -120,12 +122,12 @@ const getFraxGauges = async (): Promise<string[]> => {
 
 const getPendleGauges = async (): Promise<string[]> => {
 
-  const {data: chainIds} = await axios.get("https://raw.githubusercontent.com/DefiLlama/chainlist/main/constants/chainIds.json");
+  const { data: chainIds } = await axios.get("https://raw.githubusercontent.com/DefiLlama/chainlist/main/constants/chainIds.json");
 
   const SIZE = 100;
   const response: string[] = [];
 
-  for(const chainId of Object.keys(chainIds)) {
+  for (const chainId of Object.keys(chainIds)) {
     let run = true;
     let skip = 0;
 
@@ -219,6 +221,134 @@ const getLastGaugeProposal = async (space: string) => {
   }
 
   return null;
+};
+
+const getSpectraGauges = async (): Promise<string[]> => {
+  const VOTER = "0x3d72440af4b0312084BC51A2038180876D208832" as `0x${string}`;
+  const GOVERNANCE = "0x4425779F145f6599CFCeAa9443b497a7a2DFdB17" as `0x${string}`;
+
+  const publicClient = createPublicClient({
+    chain: chains.mainnet,
+    transport: http()
+  });
+
+  const voterAbi = parseAbi([
+    'function getAllPoolIds() external view returns(uint160[])',
+    'function isVoteAuthorized(uint160 poolId) external view returns(bool)'
+  ]);
+
+  const governanceAbi = parseAbi([
+    'function poolsData(uint160 poolId) external view returns(address,uint256,bool)',
+  ]);
+
+  const poolAbi = parseAbi([
+    'function coins(uint256 id) external view returns(address)',
+  ]);
+
+  const ptAbi = parseAbi([
+    'function symbol() external view returns(string)',
+    'function maturity() external view returns(uint256)',
+  ]);
+
+  // Get all ids
+  const results = await publicClient.multicall({
+    contracts: [
+      {
+        address: VOTER,
+        abi: voterAbi,
+        functionName: 'getAllPoolIds',
+      }
+    ]
+  });
+
+  const ids = results.shift().result as bigint[];
+
+  // Check if id is authorized to vote for
+  const results2 = await publicClient.multicall({
+    contracts: ids.map((id) => {
+      return {
+        address: VOTER,
+        abi: voterAbi,
+        functionName: 'isVoteAuthorized',
+        args: [id]
+      }
+    })
+  });
+
+  const idsAuthorized: bigint[] = []
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    const isAuthorized = results2.shift().result as boolean;
+    if (isAuthorized) {
+      idsAuthorized.push(id);
+    }
+  }
+
+  // Get pool data for pool address
+  const results3 = await publicClient.multicall({
+    contracts: idsAuthorized.map((id) => {
+      return {
+        address: GOVERNANCE,
+        abi: governanceAbi,
+        functionName: 'poolsData',
+        args: [id]
+      }
+    })
+  });
+
+  const pools: any[] = [];
+
+  for (const id of idsAuthorized) {
+    const poolData = results3.shift().result as any;
+
+    pools.push({
+      id: id.toString(),
+      poolAddress: poolData[0] as `0x${string}`,
+    })
+  }
+
+  const results4 = await publicClient.multicall({
+    contracts: pools.map((pool) => {
+
+      return {
+        address: pool.poolAddress,
+        abi: poolAbi,
+        functionName: 'coins',
+        args: [1] // PT
+      }
+
+    })
+  });
+
+  for (const pool of pools) {
+    const coinPT = results4.shift().result as `0x${string}`;
+
+    pool.coinPT = coinPT;
+  }
+
+  const results5 = await publicClient.multicall({
+    contracts: pools.map((pool) => {
+      return {
+        address: pool.coinPT,
+        abi: ptAbi,
+        functionName: 'symbol',
+      }
+    })
+  });
+
+  const responses: string[] = [];
+
+  for (const pool of pools) {
+    const symbol = results5.shift().result as string;
+
+    const splits = symbol.split("-");
+    const maturity = parseInt(splits.pop());
+
+    const maturityFormatted = moment.unix(maturity).format("L");
+    responses.push(splits.join("-") + "-" + maturityFormatted);
+  }
+
+  return responses;
 };
 
 const vote = async (gauges: string[], proposalId: string, pkStr: string, targetGaugeAddress: string) => {
@@ -331,6 +461,9 @@ const main = async () => {
       case "sdfxn.eth":
         gauges = await getFxnGauges();
         break;
+      case "sdapw.eth":
+        gauges = await getSpectraGauges();
+        break;
     }
 
     if (gauges.length === 0) {
@@ -342,8 +475,14 @@ const main = async () => {
     const monthEnd = endProposal.month() + 1;
     const yearEnd = endProposal.year();
 
-    const label = space.replace("sd", "").replace(".eth", "").toUpperCase();
+    let label = space.replace("sd", "").replace(".eth", "").toUpperCase();
     const network = space === "sdcake.eth" ? '56' : '1';
+
+
+    // Case for APW
+    if (label.toLowerCase() === "apw") {
+      label = "Spectra".toUpperCase();
+    }
 
     try {
       const proposal = {
