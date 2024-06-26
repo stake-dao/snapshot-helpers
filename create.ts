@@ -409,7 +409,7 @@ const getMavGauges = async (): Promise<string[]> => {
 
   const response: string[] = [];
 
-  for (const chainId of Object.keys(chainIds)) {
+  for (const chainId of [chains.mainnet.id]) {
 
     try {
       const data = await axios.get(`https://maverick-v2-api-delta.vercel.app/api/v5/rewardContracts/${chainId}`);
