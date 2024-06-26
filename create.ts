@@ -7,7 +7,7 @@ import axios from "axios";
 import * as chains from 'viem/chains'
 import { createPublicClient, http, parseAbi } from "viem";
 
-const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth"];
+const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
 const NETWORK_BY_SPACE = {
   "sdcrv.eth": "ethereum",
   "sdfxs.eth": "ethereum",
@@ -17,6 +17,7 @@ const NETWORK_BY_SPACE = {
   "sdcake.eth": "bsc",
   "sdfxn.eth": "ethereum",
   "sdapw.eth": "ethereum",
+  "sdmav.eth": "ethereum",
 };
 const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
 const ARBITRUM_VSDCRV_GAUGE = "0x25e822b65a58ce1a53dbc327d4fa489351fb1df0";
@@ -402,6 +403,35 @@ const vote = async (gauges: string[], proposalId: string, pkStr: string, targetG
   }
 };
 
+const getMavGauges = async (): Promise<string[]> => {
+
+  const { data: chainIds } = await axios.get("https://raw.githubusercontent.com/DefiLlama/chainlist/main/constants/chainIds.json");
+
+  const response: string[] = [];
+
+  for (const chainId of Object.keys(chainIds)) {
+
+    try {
+      const data = await axios.get(`https://maverick-v2-api-delta.vercel.app/api/v5/rewardContracts/${chainId}`);
+      const gauges = data.data.rewardContracts;
+
+      for (const gauge of gauges) {
+        const findRewardWithVe = gauge.rewards.some((reward) => reward.veRewardTokenAddress !== "0x0000000000000000000000000000000000000000");
+        if (!findRewardWithVe) {
+          continue;
+        }
+
+        const name = gauge.position.pool.tokenA.symbol + "-" + gauge.position.pool.tokenB.symbol + " #" + gauge.number;
+        response.push(name + " - " + chainId + " - " + gauge.boostedPositionAddress);
+      }
+    }
+    catch (e) {
+    }
+  }
+
+  return response;
+};
+
 const main = async () => {
 
   const hub = process.env.HUB;
@@ -464,6 +494,9 @@ const main = async () => {
       case "sdapw.eth":
         gauges = await getSpectraGauges();
         break;
+      case "sdmav.eth":
+        gauges = await getMavGauges();
+        break;
     }
 
     if (gauges.length === 0) {
@@ -477,7 +510,6 @@ const main = async () => {
 
     let label = space.replace("sd", "").replace(".eth", "").toUpperCase();
     const network = space === "sdcake.eth" ? '56' : '1';
-
 
     // Case for APW
     if (label.toLowerCase() === "apw") {
