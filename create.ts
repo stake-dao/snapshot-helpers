@@ -503,7 +503,12 @@ const main = async () => {
       continue;
     }
 
-    const endProposal = moment(startProposalDate).add(isPendle ? 6 : 13, 'days');
+    let endProposal = moment(startProposalDate).add(isPendle ? 6 : 13, 'days');
+    if (space === "sdmav.eth") {
+      // For mav, title proposal is from friday to thrusday
+      endProposal = moment(startProposalDate.add(1, 'day')).add(13, 'days');
+    }
+
     const dayEnd = endProposal.date();
     const monthEnd = endProposal.month() + 1;
     const yearEnd = endProposal.year();
