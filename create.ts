@@ -338,7 +338,9 @@ const getSpectraGauges = async (): Promise<string[]> => {
     allowFailure: true
   });
 
-  const responses: string[] = [];
+  const responses: string[] = [
+    "Blank"
+  ];
 
   for (const pool of pools) {
     if (!pool.coinPT) {
