@@ -341,7 +341,9 @@ const getSpectraGauges = async (): Promise<string[]> => {
 
   for (const pool of pools) {
     const symbol = results5.shift().result as string;
-
+    if(!symbol) {
+      continue;
+    }
     const splits = symbol.split("-");
     const maturity = parseInt(splits.pop());
 
