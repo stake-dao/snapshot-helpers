@@ -465,13 +465,6 @@ const main = async () => {
     // Except for pendle, every week
     const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
     const diff = isPendle ? 6 : 10;
-
-    // Push a vote on mainnet from PK for sdCRV/CRV gauge
-    if(space === "sdcrv.eth") {
-      await vote(await getCurveGauges(), "0x036415b7136f5b48ebee1d936c3e420551e96a1403c8b3343e1224398b3f542a" as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
-      await vote(await getCurveGauges(), "0x036415b7136f5b48ebee1d936c3e420551e96a1403c8b3343e1224398b3f542a" as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
-    }
-    
     
     if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
