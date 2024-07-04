@@ -326,22 +326,28 @@ const getSpectraGauges = async (): Promise<string[]> => {
   }
 
   const results5 = await publicClient.multicall({
-    contracts: pools.map((pool) => {
-      return {
-        address: pool.coinPT,
-        abi: ptAbi,
-        functionName: 'symbol',
-      }
-    })
+    contracts: pools
+      .filter((pool) => pool.coinPT !== undefined)
+      .map((pool) => {
+        return {
+          address: pool.coinPT,
+          abi: ptAbi,
+          functionName: 'symbol',
+        }
+      }),
+    allowFailure: true
   });
 
   const responses: string[] = [];
 
   for (const pool of pools) {
+    if (!pool.coinPT) {
+      continue;
+    }
     const s = results5.shift();
     const symbol = s.result as string;
 
-    if(!symbol) {
+    if (!symbol) {
       continue;
     }
 
@@ -465,7 +471,7 @@ const main = async () => {
     // Except for pendle, every week
     const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
     const diff = isPendle ? 6 : 10;
-    
+
     if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
     }
