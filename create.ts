@@ -20,7 +20,7 @@ const NETWORK_BY_SPACE = {
   "sdmav.eth": "ethereum",
 };
 const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
-const ARBITRUM_VSDCRV_GAUGE = "0x25e822b65a58ce1a53dbc327d4fa489351fb1df0";
+const ARBITRUM_VSDCRV_GAUGE = "0xF1bb643F953836725c6E48BdD6f1816f871d3E07";
 const SEP_START_ADDRESS = "- 0x";
 const SEP_DOT = "…";
 
@@ -301,7 +301,6 @@ const getSpectraGauges = async (): Promise<string[]> => {
 
   for (const id of idsAuthorized) {
     const poolData = results3.shift().result as any;
-
     pools.push({
       id: id.toString(),
       poolAddress: poolData[0] as `0x${string}`,
@@ -310,7 +309,6 @@ const getSpectraGauges = async (): Promise<string[]> => {
 
   const results4 = await publicClient.multicall({
     contracts: pools.map((pool) => {
-
       return {
         address: pool.poolAddress,
         abi: poolAbi,
@@ -340,10 +338,13 @@ const getSpectraGauges = async (): Promise<string[]> => {
   const responses: string[] = [];
 
   for (const pool of pools) {
-    const symbol = results5.shift().result as string;
+    const s = results5.shift();
+    const symbol = s.result as string;
+
     if(!symbol) {
       continue;
     }
+
     const splits = symbol.split("-");
     const maturity = parseInt(splits.pop());
 
@@ -436,9 +437,45 @@ const getMavGauges = async (): Promise<string[]> => {
 
 const main = async () => {
 
+  const hub = process.env.HUB;
+
+  const client = new snapshot.Client(hub);
+  const pk: BytesLike = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY : "";
+
+  const signingKey = new ethers.utils.SigningKey(pk);
+  const web3 = new ethers.Wallet(signingKey);
+
+  const now = moment().unix();
+
+  const startProposalDate = moment().add(7, "days");
+  const day = startProposalDate.date();
+  const month = startProposalDate.month() + 1;
+  const year = startProposalDate.year();
+
+  const blockTimestamp = moment().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0).utc(false).unix()
+  const startProposal = blockTimestamp - 3600;
 
   for (const space of SPACES) {
+    const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], blockTimestamp - (2 * 3600));
 
+    const lastGaugeProposal = await getLastGaugeProposal(space);
+
+    // Check if we are at least 10 days after the last proposal
+    // Because all our gauge votes are bi-monthly
+    // Except for pendle, every week
+    const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
+    const diff = isPendle ? 6 : 10;
+
+    // Push a vote on mainnet from PK for sdCRV/CRV gauge
+    if(space === "sdcrv.eth") {
+      await vote(await getCurveGauges(), "0x036415b7136f5b48ebee1d936c3e420551e96a1403c8b3343e1224398b3f542a" as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
+      await vote(await getCurveGauges(), "0x036415b7136f5b48ebee1d936c3e420551e96a1403c8b3343e1224398b3f542a" as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+    }
+    
+    
+    if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
+      continue;
+    }
 
     // Fetch gauges corresponding to space
     let gauges: string[] = [];
@@ -477,14 +514,49 @@ const main = async () => {
       continue;
     }
 
+    let endProposal = moment(startProposalDate).add(isPendle ? 6 : 13, 'days');
+    if (space === "sdmav.eth") {
+      // For mav, title proposal is from friday to thrusday
+      endProposal = moment(startProposalDate.add(1, 'day')).add(13, 'days');
+    }
+
+    const dayEnd = endProposal.date();
+    const monthEnd = endProposal.month() + 1;
+    const yearEnd = endProposal.year();
+
+    let label = space.replace("sd", "").replace(".eth", "").toUpperCase();
+    const network = space === "sdcake.eth" ? '56' : '1';
+
+    // Case for APW
+    if (label.toLowerCase() === "apw") {
+      label = "Spectra".toUpperCase();
+    }
+
     try {
+      const proposal = {
+        space: space,
+        type: "weighted",
+        title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
+        body: "Gauge vote for " + label + " inflation allocation.",
+        discussion: "https://votemarket.stakedao.org/votes",
+        choices: gauges,
+        start: startProposal,
+        end: startProposal + (4 * 86400) + (86400 / 2) + 3600, // 4.5 + 1h days after
+        snapshot: snapshotBlock,
+        plugins: JSON.stringify({}),
+        metadata: {
+          network
+        },
+      } as any;
+      const receipt = await client.proposal(web3, web3.address, proposal) as any;
+
       if (space !== "sdcrv.eth") {
         continue;
       }
 
       // Push a vote on mainnet from PK for sdCRV/CRV gauge
-      await vote(gauges, "0x036415b7136f5b48ebee1d936c3e420551e96a1403c8b3343e1224398b3f542a" as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
-      await vote(gauges, "0x036415b7136f5b48ebee1d936c3e420551e96a1403c8b3343e1224398b3f542a" as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+      await vote(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
+      await vote(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
     }
     catch (e) {
       console.error(e);
@@ -494,7 +566,7 @@ const main = async () => {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main().catch((error) => {
+getSpectraGauges().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
