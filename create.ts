@@ -474,9 +474,6 @@ const main = async () => {
     const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
     const diff = isPendle ? 6 : 10;
 
-    if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
-      continue;
-    }
 
     // Fetch gauges corresponding to space
     let gauges: string[] = [];
