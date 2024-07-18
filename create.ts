@@ -7,7 +7,7 @@ import axios from "axios";
 import * as chains from 'viem/chains'
 import { createPublicClient, http, parseAbi } from "viem";
 
-const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
+const SPACES = ["sdcrv.eth"];
 const NETWORK_BY_SPACE = {
   "sdcrv.eth": "ethereum",
   "sdfxs.eth": "ethereum",
@@ -534,30 +534,15 @@ const main = async () => {
     }
 
     try {
-      const proposal = {
-        space: space,
-        type: "weighted",
-        title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
-        body: "Gauge vote for " + label + " inflation allocation.",
-        discussion: "https://votemarket.stakedao.org/votes",
-        choices: gauges,
-        start: startProposal,
-        end: startProposal + (4 * 86400) + (86400 / 2) + 3600, // 4.5 + 1h days after
-        snapshot: snapshotBlock,
-        plugins: JSON.stringify({}),
-        metadata: {
-          network
-        },
-      } as any;
-      const receipt = await client.proposal(web3, web3.address, proposal) as any;
+      
 
       if (space !== "sdcrv.eth") {
         continue;
       }
 
       // Push a vote on mainnet from PK for sdCRV/CRV gauge
-      await vote(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
-      await vote(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+      await vote(gauges, "0xe5a2db79ef98e47ae531ffa2a77e57a06f984a0fdd979755afb5d771e4c4ebbf" as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
+      await vote(gauges, "0xe5a2db79ef98e47ae531ffa2a77e57a06f984a0fdd979755afb5d771e4c4ebbf" as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
     }
     catch (e) {
       console.error(e);
