@@ -41,7 +41,7 @@ const getCurveGauges = async (): Promise<string[]> => {
 
   const response: string[] = [];
   for (const key of Object.keys(gaugesMap)) {
-    if (gaugesMap[key].hasNoCrv || gaugesMap[key].is_killed) {
+    if (gaugesMap[key].is_killed) {
       continue;
     }
 
