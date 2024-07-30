@@ -510,9 +510,9 @@ const main = async () => {
       continue;
     }
 
-    let startProposalDate = moment().add(7, "days");
+    let startProposalDate = moment().add(9, "days");
     if (space === "sdapw.eth") {
-      startProposalDate = startProposalDate.add(2, "days");
+      startProposalDate = startProposalDate.subtract(1, "days");
     }
 
     let day = startProposalDate.date();
