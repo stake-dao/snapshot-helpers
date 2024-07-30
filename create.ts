@@ -455,11 +455,6 @@ const main = async () => {
 
   const now = moment().unix();
 
-  const startProposalDate = moment().add(7, "days");
-  const day = startProposalDate.date();
-  const month = startProposalDate.month() + 1;
-  const year = startProposalDate.year();
-
   const blockTimestamp = moment().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0).utc(false).unix()
   const startProposal = blockTimestamp - 3600;
 
@@ -515,10 +510,24 @@ const main = async () => {
       continue;
     }
 
-    let endProposal = moment(startProposalDate).add(isPendle ? 6 : 13, 'days');
+    let startProposalDate = moment().add(7, "days");
+    if (space === "sdapw.eth") {
+      startProposalDate = startProposalDate.add(2, "days");
+    }
+
+    let day = startProposalDate.date();
+    let month = startProposalDate.month() + 1;
+    let year = startProposalDate.year();
+
+    let endProposal: moment.Moment = null;;
     if (space === "sdmav.eth") {
       // For mav, title proposal is from friday to thrusday
       endProposal = moment(startProposalDate.add(1, 'day')).add(13, 'days');
+    }
+    else if (space === "sdapw.eth") {
+      endProposal = moment(startProposalDate).add(13, 'days');
+    } else {
+      endProposal = moment(startProposalDate).add(isPendle ? 6 : 13, 'days');
     }
 
     const dayEnd = endProposal.date();
