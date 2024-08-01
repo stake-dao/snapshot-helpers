@@ -6,6 +6,7 @@ import moment from "moment";
 import axios from "axios";
 import * as chains from 'viem/chains'
 import { createPublicClient, http, parseAbi } from "viem";
+import * as lodhash from 'lodash';
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
 const NETWORK_BY_SPACE = {
@@ -23,6 +24,7 @@ const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
 const ARBITRUM_VSDCRV_GAUGE = "0xF1bb643F953836725c6E48BdD6f1816f871d3E07";
 const SEP_START_ADDRESS = "- 0x";
 const SEP_DOT = "…";
+const CURVE_GC = "0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB" as `0x${string}`;
 
 dotenv.config();
 
@@ -39,9 +41,47 @@ const getCurveGauges = async (): Promise<string[]> => {
   const data = await axios.get("https://api.curve.fi/api/getAllGauges");
   const gaugesMap = data.data.data;
 
-  const response: string[] = [];
-  for (const key of Object.keys(gaugesMap)) {
+  const publicClient = createPublicClient({
+    chain: chains.mainnet,
+    transport: http()
+  });
+
+  const gcAbi = parseAbi([
+    'function gauge_types(address gauge) external view returns(int128)',
+  ]);
+
+  const gaugesKeys = Object.keys(gaugesMap);
+  const calls: any[] = [];
+  for (const key of gaugesKeys) {
     if (gaugesMap[key].is_killed) {
+      continue;
+    }
+
+    calls.push({
+      address: CURVE_GC,
+      abi: gcAbi,
+      functionName: 'gauge_types',
+      args: [gaugesMap[key].gauge]
+    });
+  }
+
+  let results: any[] = [];
+  const chunks = lodhash.chunk(calls, 50);
+  for(const c of chunks) {
+    const res = await publicClient.multicall({
+      contracts: c,    
+    });
+    results = results.concat(res);
+  }
+
+  const response: string[] = [];
+  for (const key of gaugesKeys) {
+    if (gaugesMap[key].is_killed) {
+      continue;
+    }
+
+    const gaugeAdded = results.shift()?.error === undefined;
+    if(!gaugeAdded) {
       continue;
     }
 
