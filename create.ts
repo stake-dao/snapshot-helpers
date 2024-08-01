@@ -510,7 +510,7 @@ const main = async () => {
       continue;
     }
 
-    let startProposalDate = moment().add(9, "days");
+    let startProposalDate = moment().add(7, "days");
     if (space === "sdapw.eth") {
       startProposalDate = startProposalDate.subtract(1, "days");
     }
