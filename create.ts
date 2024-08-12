@@ -478,6 +478,11 @@ const getMavGauges = async (): Promise<string[]> => {
         }
 
         const name = gauge.position.pool.tokenA.symbol + "-" + gauge.position.pool.tokenB.symbol + " #" + gauge.number;
+        if (name.endsWith("*")) {
+          // Old ones
+          continue;
+        }
+        
         response.push(name + " - " + chainId + " - " + gauge.boostedPositionAddress);
       }
     }
