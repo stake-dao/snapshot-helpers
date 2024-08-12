@@ -28,6 +28,9 @@ const CURVE_GC = "0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB" as `0x${string}`;
 
 dotenv.config();
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+
 const extractAddress = (address: string): string => {
   return address.substring(0, 17) + SEP_DOT + address.substring(address.length - 2);
 }
@@ -174,7 +177,9 @@ const getPendleGauges = async (): Promise<string[]> => {
 
     do {
       try {
+        await sleep(2 * 1000); // Sleep 2s to avoid rate limit from Pendle
         const data = await axios.get(`https://api-v2.pendle.finance/core/v1/${chainId}/markets?limit=${SIZE}&is_expired=false&skip=${skip}`);
+
         const gauges = data.data.results;
 
         if (gauges.length === SIZE) {
