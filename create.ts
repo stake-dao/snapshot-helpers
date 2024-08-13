@@ -175,9 +175,14 @@ const getPendleGauges = async (): Promise<string[]> => {
     let run = true;
     let skip = 0;
 
+    let countChain = 0;
     do {
       try {
-        await sleep(2 * 1000); // Sleep 2s to avoid rate limit from Pendle
+        countChain++;
+        if (countChain === 80) {
+          await sleep(2 * 1000); // Sleep 2s to avoid rate limit from Pendle
+          countChain = 0;
+        }
         const data = await axios.get(`https://api-v2.pendle.finance/core/v1/${chainId}/markets?limit=${SIZE}&is_expired=false&skip=${skip}`);
 
         const gauges = data.data.results;
