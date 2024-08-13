@@ -70,9 +70,9 @@ const getCurveGauges = async (): Promise<string[]> => {
 
   let results: any[] = [];
   const chunks = lodhash.chunk(calls, 50);
-  for(const c of chunks) {
+  for (const c of chunks) {
     const res = await publicClient.multicall({
-      contracts: c,    
+      contracts: c,
     });
     results = results.concat(res);
   }
@@ -84,7 +84,7 @@ const getCurveGauges = async (): Promise<string[]> => {
     }
 
     const gaugeAdded = results.shift()?.error === undefined;
-    if(!gaugeAdded) {
+    if (!gaugeAdded) {
       continue;
     }
 
@@ -236,6 +236,18 @@ const getChainIdName = (chainId: number): string => {
   return chainId.toString();
 }
 
+const getChain = (chainId: number): chains.Chain | undefined => {
+  for (const chain of Object.values(chains)) {
+    if ('id' in chain) {
+      if (chain.id === chainId) {
+        return chain;
+      }
+    }
+  }
+
+  return undefined;
+}
+
 const getFxnGauges = async (): Promise<string[]> => {
   const data = await axios.get("https://api.aladdin.club/api1/get_fx_gauge_list");
   const gaugesMap = data.data.data;
@@ -354,60 +366,70 @@ const getSpectraGauges = async (): Promise<string[]> => {
     pools.push({
       id: id.toString(),
       poolAddress: poolData[0] as `0x${string}`,
+      chainId: Number(BigInt(poolData[1])),
     })
   }
-
-  const results4 = await publicClient.multicall({
-    contracts: pools.map((pool) => {
-      return {
-        address: pool.poolAddress,
-        abi: poolAbi,
-        functionName: 'coins',
-        args: [1] // PT
-      }
-
-    })
-  });
 
   for (const pool of pools) {
-    const coinPT = results4.shift().result as `0x${string}`;
+    const chain = getChain(pool.chainId);
+    if (!chain) {
+      continue;
+    }
 
-    pool.coinPT = coinPT;
+    pool.chainName = getChainIdName(pool.chainId);
+
+    const client = createPublicClient({
+      chain: chain,
+      transport: http()
+    });
+
+    const res = await client.multicall({
+      contracts: [
+        {
+          address: pool.poolAddress as `0x${string}`,
+          abi: poolAbi,
+          functionName: 'coins',
+          args: [BigInt(1)] // PT
+        }
+      ]
+    });
+
+    pool.coinPT = res.shift().result;
+    if (pool.coinPT !== undefined) {
+      const resSymbol = await client.multicall({
+        contracts: [
+          {
+            address: pool.coinPT,
+            abi: ptAbi,
+            functionName: 'symbol',
+          }
+        ],
+        allowFailure: true
+      });
+
+      const s = resSymbol.shift();
+      const symbol = s.result as string;
+      pool.symbol = symbol;
+    }
   }
 
-  const results5 = await publicClient.multicall({
-    contracts: pools
-      .filter((pool) => pool.coinPT !== undefined)
-      .map((pool) => {
-        return {
-          address: pool.coinPT,
-          abi: ptAbi,
-          functionName: 'symbol',
-        }
-      }),
-    allowFailure: true
-  });
 
   const responses: string[] = [
     "Blank"
   ];
 
   for (const pool of pools) {
-    if (!pool.coinPT) {
-      continue;
-    }
-    const s = results5.shift();
-    const symbol = s.result as string;
-
-    if (!symbol) {
+    if (!pool.coinPT || !pool.symbol) {
       continue;
     }
 
-    const splits = symbol.split("-");
+    const splits = pool.symbol.split("-");
     const maturity = parseInt(splits.pop());
 
     const maturityFormatted = moment.unix(maturity).format("L");
-    responses.push(splits.join("-") + "-" + maturityFormatted);
+
+    const chainName = pool.chainName.toLowerCase().replace(" ", "");
+    responses.push(chainName + "-" + splits.join("-") + "-" + maturityFormatted);
   }
 
   return responses;
@@ -487,7 +509,7 @@ const getMavGauges = async (): Promise<string[]> => {
           // Old ones
           continue;
         }
-        
+
         response.push(name + " - " + chainId + " - " + gauge.boostedPositionAddress);
       }
     }
