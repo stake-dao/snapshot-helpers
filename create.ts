@@ -217,7 +217,20 @@ const getPancakeGauges = async (): Promise<string[]> => {
 
   const response: string[] = [];
 
+  const blacklists: string[] = [
+    "0x183F325b33d190597D80d1B46D865d0250fD9BF2",
+    "0xA2915ae3bc8C6C03f59496B6Dd26aa6a4335b788",
+    "0x1A2329546f11e4fE55b853D98Bba2c4678E3105A",
+    "0x0db5e247ab73FBaE16d9301f2977f974EC0AA336",
+    "0x4cBEa76B4A1c42C356B4c52B0314A98313fFE9df"
+  ];
+
   for (const gauge of gauges) {
+    const isBlacklisted = blacklists.find((addr) => addr.toLowerCase() === gauge.address.toLowerCase()) !== undefined;
+    if(isBlacklisted) {
+      continue;
+    }
+
     response.push(gauge.pairName + " / " + getChainIdName(gauge.chainId) + " - " + extractAddress(gauge.address));
   }
 
