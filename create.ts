@@ -199,7 +199,7 @@ const getPendleGauges = async (): Promise<string[]> => {
             name = name.replace("PT ", "");
           }
           if (name.indexOf("PT-") > -1) {
-            name = name.replace("PT-", "LP-");
+            name = name.replace("PT-", "");
           }
           response.push(name + " - " + gauge.pt.chainId + "-" + gauge.address);
         }
