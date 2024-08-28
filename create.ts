@@ -21,7 +21,8 @@ const NETWORK_BY_SPACE = {
   "sdmav.eth": "ethereum",
 };
 const SDCRV_CRV_GAUGE = "0x26f7786de3e6d9bd37fcf47be6f2bc455a21b74a"
-const ARBITRUM_VSDCRV_GAUGE = "0xF1bb643F953836725c6E48BdD6f1816f871d3E07";
+const ARBITRUM_VSDCRV_GAUGE = "0xf1bb643f953836725c6e48bdd6f1816f871d3e07";
+const POLYGON_VSDCRV_GAUGE = "0x8ad6f98184a0cb79887244b4e7e8beb1b4ba26d4";
 const SEP_START_ADDRESS = "- 0x";
 const SEP_DOT = "…";
 const CURVE_GC = "0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB" as `0x${string}`;
@@ -660,6 +661,7 @@ const main = async () => {
       // Push a vote on mainnet from PK for sdCRV/CRV gauge
       await vote(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
       await vote(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+      await vote(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
     }
     catch (e) {
       console.error(e);
