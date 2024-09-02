@@ -1,3 +1,5 @@
+name: "Create weekly gauge proposals"
+
 on: 
   workflow_dispatch:
   schedule:
