@@ -9,11 +9,13 @@
     "graphql-request": "^6.1.0",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
+    "node-telegram-bot-api": "^0.66.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2",
     "viem": "^1.19.11"
   },
   "scripts": {
-    "start": "npx ts-node create.ts"
+    "start": "npx ts-node create.ts",
+    "mirror": "npx ts-node mirror.ts"
   }
 }
