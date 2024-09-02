@@ -3,7 +3,9 @@ import snapshot from "@snapshot-labs/snapshot.js";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Wallet } from "@ethersproject/wallet";
 import axios from "axios";
-import "dotenv/config";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 const TelegramBot = require('node-telegram-bot-api');
 const token = process.env.TG_API_KEY_GOV_CHANNEL;
