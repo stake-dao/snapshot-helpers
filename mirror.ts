@@ -6,7 +6,7 @@ import axios from "axios";
 import "dotenv/config";
 
 const TelegramBot = require('node-telegram-bot-api');
-const token = process.env.TG_API_KEY;
+const token = process.env.TG_API_KEY_GOV_CHANNEL;
 const chatId = "-1001833039204";
 const bot = new TelegramBot(token, { polling: true });
 
