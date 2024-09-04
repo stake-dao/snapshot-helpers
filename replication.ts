@@ -15,7 +15,7 @@ const DELAY_CURVE = 3 * 24 * ONE_HOUR
 const DELAY_OTHERS = 2 * 24 * ONE_HOUR
 
 
-const API_TOKEN_SD = "5370000732:AAHcxlnTSMKe2zAv0EyCLMgcQePDIItEgk8"
+const API_TOKEN_SD = process.env.TG_API_KEY;
 const TELEGRAM_API = "https://api.telegram.org/bot" + API_TOKEN_SD + "/sendMessage"
 const TELEGRAM_CHANNEL_ID = "@MetaGovernanceSD"
 const TELEGRAM_GOVERNANCE_ID = "-1002204618754"
