@@ -7,6 +7,7 @@ import axios from "axios";
 import * as chains from 'viem/chains'
 import { createPublicClient, http, parseAbi } from "viem";
 import * as lodhash from 'lodash';
+import { sleep } from "./utils/sleep";
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
 const NETWORK_BY_SPACE = {
@@ -28,8 +29,6 @@ const SEP_DOT = "…";
 const CURVE_GC = "0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB" as `0x${string}`;
 
 dotenv.config();
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 
 const extractAddress = (address: string): string => {

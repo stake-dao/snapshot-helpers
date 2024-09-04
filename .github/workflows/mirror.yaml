@@ -1,4 +1,4 @@
-name: "Snapshot mirror proposals"
+name: "All jobs"
 
 on: 
     workflow_dispatch:
@@ -7,13 +7,17 @@ on:
   
 env:
     PKS: ${{ secrets.PKS }}
-  
+
 jobs:
-    build: # make sure build/ci work properly
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v2
-        - run: |
-            npm install
-        - run: |
-            npm run mirror
+  build: # make sure build/ci work properly
+    runs-on: ubuntu-latest
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+    steps:
+        - uses: actions/checkout@v4
+        - run: npm install
+        - run: npm run mirror
+        - run: npm run replication
+        - uses: stefanzweifel/git-auto-commit-action@v5
