@@ -10,7 +10,7 @@ dotenv.config();
 const TelegramBot = require('node-telegram-bot-api');
 const token = process.env.TG_API_KEY_GOV_CHANNEL;
 const chatId = "-1001833039204";
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token, { polling: false });
 
 // https://github.com/snapshot-labs/snapshot.js/blob/master/src/schemas/proposal.json
 const MAX_LENGTH_TITLE = 256;
@@ -439,32 +439,31 @@ const handleCurve = async () => {
     }
 };
 
-const handlers: Record<string, (space:string) => Promise<void>> = {
-	"frax.eth": handleBasicSnaphsot,
-	"anglegovernance.eth": handleOnchainAngleSnaphsot,
-	"balancer.eth": handleBasicSnaphsot,
-	"blackpoolhq.eth": handleBasicSnaphsot,
-	"spectradao.eth": handleBasicSnaphsot,
-	"veyfi.eth": handleBasicSnaphsot,
-	"mavxyz.eth": handleBasicSnaphsot,
-	"fxn.eth": handleBasicSnaphsot,
-	"cakevote.eth": handleBasicSnaphsot,
-	"curve.eth": handleCurve,
+const handlers: Record<string, (space: string) => Promise<void>> = {
+    "frax.eth": handleBasicSnaphsot,
+    "anglegovernance.eth": handleOnchainAngleSnaphsot,
+    "balancer.eth": handleBasicSnaphsot,
+    "blackpoolhq.eth": handleBasicSnaphsot,
+    "spectradao.eth": handleBasicSnaphsot,
+    "veyfi.eth": handleBasicSnaphsot,
+    "mavxyz.eth": handleBasicSnaphsot,
+    "fxn.eth": handleBasicSnaphsot,
+    "cakevote.eth": handleBasicSnaphsot,
+    "curve.eth": handleCurve,
 };
 
 const main = async () => {
-    console.log(process.env.TG_API_KEY_GOV_CHANNEL)
-	const spaces = Object.keys(SPACES);
-	for (const space of spaces) {
-		try {
-			console.log("execute space ", space)
-			await handlers[space](space);
-		}
-		catch (e) {
-			console.error(e);
-		}
-	}
-	console.log("sync done");
+    const spaces = Object.keys(SPACES);
+    for (const space of spaces) {
+        try {
+            console.log("execute space ", space)
+            await handlers[space](space);
+        }
+        catch (e) {
+            console.error(e);
+        }
+    }
+    console.log("sync done");
     await bot.stopPolling();
     return;
 };
