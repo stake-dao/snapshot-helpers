@@ -16,6 +16,7 @@
   },
   "scripts": {
     "start": "npx ts-node create.ts",
-    "mirror": "npx ts-node mirror.ts"
+    "mirror": "npx ts-node mirror.ts",
+    "replication": "npx ts-node replication.ts"
   }
 }
