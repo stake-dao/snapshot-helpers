@@ -319,6 +319,11 @@ const main = async () => {
         }
     }
 
+    // Change timestamp for the next run
+    for (const space of ens) {
+        timePerSpaces[space] = now;
+    }
+
     fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), {encoding: 'utf-8'});
 };
 
