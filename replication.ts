@@ -313,7 +313,6 @@ const main = async () => {
     // Check closed
     for (const space of ens) {
         const proposals = await getClosed(space);
-        console.log(space, proposals.length)
         for (const proposal of proposals) {
             await sendTextToTelegramChat(proposal, spaces[space], false, false, true);
             await sendToOperationsChannel(proposal, spaces[space], space);

@@ -1,14 +1,14 @@
 name: "All jobs"
 
 on: 
-    workflow_dispatch:
-    schedule:
-      - cron: '*/5 * * * *' # Every 5 minutes
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *' # Every 5 minutes
   
 env:
-    PKS: ${{ secrets.PKS }}
-    TG_API_KEY_GOV_CHANNEL: ${{ secrets.TG_API_KEY_GOV_CHANNEL }}
-    API_TOKEN_SD: ${{ secrets.API_TOKEN_SD }}
+  PKS: ${{ secrets.PKS }}
+  TG_API_KEY_GOV_CHANNEL: ${{ secrets.TG_API_KEY_GOV_CHANNEL }}
+  API_TOKEN_SD: ${{ secrets.API_TOKEN_SD }}
 
 jobs:
   build: # make sure build/ci work properly
