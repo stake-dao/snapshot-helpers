@@ -8,7 +8,7 @@ on:
 env:
   PKS: ${{ secrets.PKS }}
   TG_API_KEY_GOV_CHANNEL: ${{ secrets.TG_API_KEY_GOV_CHANNEL }}
-  API_TOKEN_SD: ${{ secrets.API_TOKEN_SD }}
+  TG_API_KEY: ${{ secrets.TG_API_KEY }}
 
 jobs:
   build: # make sure build/ci work properly

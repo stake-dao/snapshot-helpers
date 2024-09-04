@@ -453,6 +453,7 @@ const handlers: Record<string, (space:string) => Promise<void>> = {
 };
 
 const main = async () => {
+    console.log(process.env.TG_API_KEY_GOV_CHANNEL)
 	const spaces = Object.keys(SPACES);
 	for (const space of spaces) {
 		try {
