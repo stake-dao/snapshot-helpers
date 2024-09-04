@@ -181,7 +181,7 @@ const getReminder = async (space: string, end: number): Promise<Proposal[]> => {
     let proposals: Proposal[] = [];
 
     // Calcul de l'intervalle de temps pour la requête GraphQL
-    const endGt = Math.floor((new Date(end * 1000).getTime() - 15 * 60 * 1000) / 1000); // end - 15 minutes
+    const endGt = Math.floor((new Date(end * 1000).getTime() - 5 * 60 * 1000) / 1000); // end - 15 minutes
 
     // Requête GraphQL
     const query = gql`
@@ -225,7 +225,7 @@ const getClosed = async (space: string): Promise<Proposal[]> => {
     let proposals: Proposal[] = [];
 
     const now = Math.floor(Date.now() / 1000);
-    const fifteenMinutesAgo = now - 15 * 60; // 15 minutes en secondes
+    const fifteenMinutesAgo = now - 5 * 60; // 5 minutes en secondes
 
     // Requête GraphQL
     const query = gql`
@@ -275,6 +275,8 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 
 const main = async () => {
 
+    console.log(API_TOKEN_SD)
+
     const timePerSpaces: Record<string, number> = JSON.parse(fs.readFileSync("./data/replication.json", { encoding: 'utf-8' }));
     const now = moment().unix();
     const ens = Object.keys(spaces);
@@ -313,6 +315,7 @@ const main = async () => {
     // Check closed
     for (const space of ens) {
         const proposals = await getClosed(space);
+        console.log(space, proposals.length)
         for (const proposal of proposals) {
             await sendTextToTelegramChat(proposal, spaces[space], false, false, true);
             await sendToOperationsChannel(proposal, spaces[space], space);
