@@ -275,8 +275,6 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 
 const main = async () => {
 
-    console.log(API_TOKEN_SD)
-
     const timePerSpaces: Record<string, number> = JSON.parse(fs.readFileSync("./data/replication.json", { encoding: 'utf-8' }));
     const now = moment().unix();
     const ens = Object.keys(spaces);
