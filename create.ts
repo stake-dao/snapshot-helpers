@@ -455,7 +455,7 @@ const getSpectraGauges = async (): Promise<string[]> => {
   return responses;
 };
 
-const vote = async (gauges: string[], proposalId: string, pkStr: string, targetGaugeAddress: string) => {
+const voteCRV = async (gauges: string[], proposalId: string, pkStr: string, targetGaugeAddress: string) => {
 
   let choiceIndex = -1;
   for (let i = 0; i < gauges.length; i++) {
@@ -496,6 +496,67 @@ const vote = async (gauges: string[], proposalId: string, pkStr: string, targetG
   try {
     await client.vote(web3 as any, web3.address, {
       space: 'sdcrv.eth',
+      proposal: proposalId,
+      type: 'weighted',
+      choice,
+    });
+  }
+  catch (e) {
+    console.log(e);
+  }
+};
+
+const voteCake = async (gauges: string[], proposalId: string, pkStr: string) => {
+
+  const gaugesToVote = [
+    {
+      gauge: "0xB1D54d76E2cB9425Ec9c018538cc531440b55dbB", // sdcake stable
+      weight: 90,
+    },
+    {
+      gauge: "0x52b59E3eAdc7C4ce8d3533020ca0Cd770E4eAbC3", // defiedge sdt-bnb
+      weight: 10,
+    }
+  ];
+
+  const choice = {};
+  for (const gaugeToVote of gaugesToVote) {
+    for (let i = 0; i < gauges.length; i++) {
+      const gauge = gauges[i];
+      const startIndex = gauge.indexOf(SEP_START_ADDRESS);
+      if (startIndex === -1) {
+        continue;
+      }
+
+      const endIndex = gauge.indexOf(SEP_DOT, startIndex);
+      if (endIndex === -1) {
+        continue;
+      }
+
+      const startAddress = gauge.substring(startIndex + SEP_START_ADDRESS.length - 2, endIndex);
+      if (gaugeToVote.gauge.toLowerCase().indexOf(startAddress.toLowerCase()) === -1) {
+        continue;
+      }
+
+      choice[(i + 1).toString()] = gaugeToVote.weight;
+      break;
+    }
+  }
+
+  if (Object.keys(choice).length !== gaugesToVote.length) {
+    console.log("Impossible to find target Pancake gauges. Proposal id : ", proposalId);
+    return;
+  }
+
+  const hub = process.env.HUB;
+
+  const client = new snapshot.Client712(hub);
+  const pk: BytesLike = pkStr;
+  const web3 = new ethers.Wallet(pk);
+
+  try {
+    await client.vote(web3 as any, web3.address, {
+      space: 'sdcake.eth',
       proposal: proposalId,
       type: 'weighted',
       choice,
@@ -657,14 +718,14 @@ const main = async () => {
       } as any;
       const receipt = await client.proposal(web3 as any, web3.address, proposal) as any;
 
-      if (space !== "sdcrv.eth") {
-        continue;
+      if (space === "sdcrv.eth") {
+        // Push a vote on mainnet from PK for sdCRV/CRV gauge
+        await voteCRV(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
+        await voteCRV(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+        await voteCRV(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
+      } else if (space === "sdcake.eth") {
+        await voteCake(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY);
       }
-
-      // Push a vote on mainnet from PK for sdCRV/CRV gauge
-      await vote(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
-      await vote(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
-      await vote(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
     }
     catch (e) {
       console.error(e);
