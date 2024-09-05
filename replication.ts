@@ -840,9 +840,9 @@ const main = async () => {
     // Clear proposals fetched
     const twoDaysAgo = now - ONE_HOUR * 24 * 2;
     const newProposalFetched: ProposalFetched[][] = [];
-    newProposalFetched.push(proposalsFetched[0].filter((p) => p.ts < twoDaysAgo));
-    newProposalFetched.push(proposalsFetched[1].filter((p) => p.ts < twoDaysAgo));
-    newProposalFetched.push(proposalsFetched[2].filter((p) => p.ts < twoDaysAgo));
+    newProposalFetched.push(proposalsFetched[0].filter((p) => p.ts > twoDaysAgo));
+    newProposalFetched.push(proposalsFetched[1].filter((p) => p.ts > twoDaysAgo));
+    newProposalFetched.push(proposalsFetched[2].filter((p) => p.ts > twoDaysAgo));
 
     fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), {encoding: 'utf-8'});
     fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), {encoding: 'utf-8'});
