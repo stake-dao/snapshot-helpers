@@ -1,9 +1,10 @@
 import { request, gql } from "graphql-request";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { JsonRpcProvider } from "@ethersproject/providers";
-import { Wallet } from "@ethersproject/wallet";
 import axios from "axios";
 import * as dotenv from "dotenv";
+import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
+import { Wallet } from "ethers";
 
 dotenv.config();
 
@@ -18,7 +19,6 @@ const MAX_LENGTH_BODY = 10000;
 
 const SNAPSHOT_URL = "https://hub.snapshot.org";
 const RPC_PROVIDER_URL = "http://3.143.14.91:8545";
-const ANGLE_ONCHAIN_SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cltpyx1eh5g5v01xi0a5h5xea/subgraphs/governance-eth/prod/gn";
 
 const QUERY = gql`
 	query Proposals($spaces: [String!]!, $minCreated: Int!) {
@@ -181,7 +181,7 @@ const createProposal = async ({ payload }: any) => {
         };
 
         try {
-            const receipt = await snapshotClient.proposal(signer, address, proposal);
+            const receipt = await snapshotClient.proposal(signer as any, address, proposal);
             console.log(receipt);
             lastError = null;
 

@@ -490,7 +490,7 @@ const vote = async (gauges: string[], proposalId: string, pkStr: string, targetG
   choice[(choiceIndex + 1).toString()] = 1;
 
   try {
-    await client.vote(web3, web3.address, {
+    await client.vote(web3 as any, web3.address, {
       space: 'sdcrv.eth',
       proposal: proposalId,
       type: 'weighted',
@@ -651,7 +651,7 @@ const main = async () => {
           network
         },
       } as any;
-      const receipt = await client.proposal(web3, web3.address, proposal) as any;
+      const receipt = await client.proposal(web3 as any, web3.address, proposal) as any;
 
       if (space !== "sdcrv.eth") {
         continue;

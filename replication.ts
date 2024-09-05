@@ -1,4 +1,4 @@
-import { request, gql, GraphQLClient } from "graphql-request";
+import { gql, GraphQLClient } from "graphql-request";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Wallet } from "@ethersproject/wallet";
@@ -7,29 +7,32 @@ import * as dotenv from "dotenv";
 import moment from "moment";
 import { sleep } from "./utils/sleep";
 import fs from 'fs';
+import * as lodhash from 'lodash';
+import * as linkify from "linkifyjs";
+import CurveVoterABI from './abis/CurveVoter.json';
+import CurveUnderlyingVoterABI from './abis/CurveUnderlyingVoter.json';
+import AngleGovernorABI from './abis/AngleGovernor.json';
+import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseUnits } from "viem";
+import * as chains from 'viem/chains'
+import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
 
 dotenv.config();
 
 const ONE_HOUR = 3600
 const DELAY_CURVE = 3 * 24 * ONE_HOUR
 const DELAY_OTHERS = 2 * 24 * ONE_HOUR
-
+const DELAY_ONE_DAY = 1 * 24 * ONE_HOUR
 
 const API_TOKEN_SD = process.env.TG_API_KEY;
 const TELEGRAM_API = "https://api.telegram.org/bot" + API_TOKEN_SD + "/sendMessage"
 const TELEGRAM_CHANNEL_ID = "@MetaGovernanceSD"
 const TELEGRAM_GOVERNANCE_ID = "-1002204618754"
-const TELEGRAM_CHANNEL_ID_TEST = "@testpierr"
 const CURVE_VOTER = "0x20b22019406Cf990F0569a6161cf30B8e6651dDa"
 
 // ANGLE
 const ANGLE_GOVERNOR = "0x748bA9Cd5a5DDba5ABA70a4aC861b2413dCa4436"
-const ANGLE_ONCHAIN_SUBGRAPH_URL = "https://api.goldsky.com/api/public/project_cltpyx1eh5g5v01xi0a5h5xea/subgraphs/governance-eth/prod/gn"
-const VE_ANGLE = "0x0C462Dbb9EC8cD1630f1728B2CFD2769d09f0dd5"
 const ANGLE_LOCKER = "0xD13F8C25CceD32cdfA79EB5eD654Ce3e484dCAF5"
 const ANGLE_VOTER = "0x0E0F27b9d5F2bc742Bf547968d2f07dECBCf1A23"
-
-const LAYOUT_TIME = "2006-01-02 15:04:05"
 
 // Snapshot
 const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql');
@@ -78,10 +81,26 @@ interface Proposal {
     type: string;
     scores: number[];
     quorum: number;
+    network: string;
+    space: {
+        id: string;
+        name: string;
+        symbol: string;
+    };
 }
 
 interface GraphQLResponse {
     proposals: Proposal[];
+}
+
+interface AngleProposal {
+    id: string;
+    description: string;
+    snapshotBlock: string;
+    snapshotTimestamp: string;
+}
+interface AngleGraphQLResponse {
+    proposals: AngleProposal[];
 }
 
 const sendTextToTelegramChat = async (
@@ -153,6 +172,12 @@ const getNewProposals = async (space: string, timePerSpaces: Record<string, numb
             state
             author
             created
+            network
+            space {
+                id
+                name
+                symbol
+            }
           }
         }
       `;
@@ -181,7 +206,7 @@ const getReminder = async (space: string, end: number): Promise<Proposal[]> => {
     let proposals: Proposal[] = [];
 
     // Calcul de l'intervalle de temps pour la requête GraphQL
-    const endGt = Math.floor((new Date(end * 1000).getTime() - 5 * 60 * 1000) / 1000); // end - 15 minutes
+    const endGt = Math.floor((new Date(end * 1000).getTime() - 15 * 60 * 1000) / 1000); // end - 15 minutes
 
     // Requête GraphQL
     const query = gql`
@@ -206,6 +231,12 @@ const getReminder = async (space: string, end: number): Promise<Proposal[]> => {
           state
           author
           created
+          network
+          space {
+            id
+            name
+            symbol
+          }
         }
       }
     `;
@@ -225,7 +256,7 @@ const getClosed = async (space: string): Promise<Proposal[]> => {
     let proposals: Proposal[] = [];
 
     const now = Math.floor(Date.now() / 1000);
-    const fifteenMinutesAgo = now - 5 * 60; // 5 minutes en secondes
+    const fifteenMinutesAgo = now - 15 * 60; // 5 minutes en secondes
 
     // Requête GraphQL
     const query = gql`
@@ -254,6 +285,12 @@ const getClosed = async (space: string): Promise<Proposal[]> => {
           type
           scores
           quorum
+          network
+          space {
+            id
+            name
+            symbol
+          }
         }
       }
     `;
@@ -269,11 +306,467 @@ const getClosed = async (space: string): Promise<Proposal[]> => {
     return proposals;
 }
 
+const getProposal = async (proposalId: string, space: string): Promise<Proposal> => {
+
+    // Requête GraphQL
+    const query = gql`
+      {
+        proposals(
+          where: {
+            space_in: ["${space}"],
+            id: "${proposalId}"
+          },
+          orderBy: "created",
+          orderDirection: desc,
+          first: 1000
+        ) {
+          id
+          title
+          body
+          choices
+          start
+          end
+          snapshot
+          state
+          author
+          created
+          type
+          scores
+          quorum
+          network
+          space {
+            id
+            name
+            symbol
+          }
+        }
+      }
+    `;
+
+    try {
+        const graphqlResponse: GraphQLResponse = await graphqlClient.request(query);
+        return graphqlResponse.proposals[0];
+    } catch (err) {
+        console.error('Erreur lors de la requête GraphQL:', err);
+        throw err;
+    }
+}
+
+const getOriginalProposal = async (proposal: Proposal, space: string): Promise<Proposal | undefined> => {
+    const originSpace = originSpaces[space];
+
+    let title = proposal.title;
+    if (space.toLowerCase() === "sdyfi.eth") {
+        title = title.replaceAll("Gauge vote YFI - ", "");
+    }
+
+    const graphqlRequest = gql`
+        query {
+            proposals(
+                where: { space_in: ["${originSpace}"], title_contains: "${title}" },
+                orderBy: "created",
+                orderDirection: desc,
+                first: 1
+            ) {
+                id
+                title
+                body
+                choices
+                start
+                end
+                snapshot
+                state
+                author
+                created
+                type
+                network
+                space {
+                    id
+                    name
+                    symbol
+                }
+            }
+        }
+    `;
+
+    try {
+        const graphqlResponse: GraphQLResponse = await graphqlClient.request(graphqlRequest);
+
+        if (graphqlResponse.proposals.length === 0) {
+            return undefined;
+        }
+
+        return graphqlResponse.proposals[0];
+    } catch (err) {
+        console.error(err);
+        return undefined;
+    }
+}
+
+const getPctBase = async (votingAddress: string): Promise<number | undefined> => {
+    const publicClient = createPublicClient({
+        chain: chains.mainnet,
+        transport: http()
+    });
+
+    const res = await publicClient.multicall({
+        contracts: [
+            {
+                address: votingAddress as `0x${string}`,
+                abi: CurveUnderlyingVoterABI as any,
+                functionName: 'PCT_BASE',
+                args: []
+            }
+        ],
+    });
+
+    return Number(res.shift().result) || undefined;
+}
+
+const getOriginalAngleProposal = async(proposal: Proposal): Promise<AngleProposal | undefined> => {
+    const graphqlClient = new GraphQLClient(ANGLE_ONCHAIN_SUBGRAPH_URL);
+
+    const graphqlRequest = gql`
+        query {
+            proposals(
+                where: { snapshotBlock: ${proposal.snapshot} },
+                orderBy: "creationBlock",
+                orderDirection: desc,
+                first: 1000
+            ) {
+                id
+                description
+                snapshotBlock
+                snapshotTimestamp
+            }
+        }
+    `;
+
+    try {
+        const graphqlResponse: AngleGraphQLResponse = await graphqlClient.request(graphqlRequest);
+
+        if (graphqlResponse.proposals.length === 0) {
+            return undefined;
+        }
+
+        if (graphqlResponse.proposals.length === 1) {
+            return graphqlResponse.proposals[0];
+        }
+
+        // Search by description
+        for (const originalProposal of graphqlResponse.proposals) {
+            const ipfsUrl = originalProposal.description.replace("ipfs://", "ipfs/");
+
+            const response = await fetch(`https://angle-blog.infura-ipfs.io/${ipfsUrl}`);
+            if (!response.ok) {
+                return undefined;
+            }
+
+            const respBody = await response.text();
+            const description = respBody.substring(1);
+
+            if (description.toLowerCase() === proposal.title.toLowerCase()) {
+                return originalProposal;
+            }
+        }
+
+        return undefined;
+    } catch (err) {
+        console.error(err);
+        return undefined;
+    }
+}
+
+const getAngleVotingPower = async (snapshotTimestamp: number): Promise<bigint | undefined> => {
+    const publicClient = createPublicClient({
+        chain: chains.mainnet,
+        transport: http()
+    });
+
+    const res = await publicClient.multicall({
+        contracts: [
+            {
+                address: ANGLE_GOVERNOR as `0x${string}`,
+                abi: AngleGovernorABI as any,
+                functionName: 'getVotes',
+                args: [ANGLE_LOCKER, snapshotTimestamp]
+            }
+        ],
+    });
+
+    const response = res.shift();
+    if (response.error || !response.result) {
+        return undefined;
+    }
+    return BigInt(response.result as any) || undefined;
+}
+
+const replicateVote = async (proposalSD: Proposal, originalProposal: Proposal): Promise<boolean> => {
+    try {
+        let choice = null;
+
+        if (originalProposal.type === "single-choice" || originalProposal.type === "basic") {
+            let bestIndexScore = 0;
+            let bestScore = -1;
+            for (let i = 0; i < proposalSD.scores.length; i++) {
+                if (proposalSD.scores[i] > bestScore) {
+                    bestScore = proposalSD.scores[i];
+                    bestIndexScore = i + 1;
+                }
+            }
+
+            choice = bestIndexScore;
+        } else {
+            choice = {};
+            let index = 1;
+            for (const score of proposalSD.scores) {
+                choice[index.toString()] = score;
+                index++;
+            }
+        }
+
+        const RPC_PROVIDER_URL = proposalSD.network === "1" ? "https://eth.public-rpc.com" : "https://rpc.ankr.com/bsc";
+        const provider = new JsonRpcProvider(RPC_PROVIDER_URL);
+        const signer = new Wallet(process.env.PK_BOT_REPLICATION, provider);
+        const address = signer.address; // 0xa9B3C2209e85B136610959b85379Ce3c2c50eB7E
+
+        const hubClient = 'https://hub.snapshot.org';
+        const client = new snapshot.Client712(hubClient);
+
+        await client.vote(signer as any, address, {
+            space: originalProposal.space.id,
+            proposal: originalProposal.id,
+            type: originalProposal.type as any,
+            choice,
+            metadata: JSON.stringify({}),
+            reason: 'Stake DAO ' + proposalSD.space.symbol.replace("sd", "") + ' Liquid Locker'
+        });
+        return true;
+    }
+    catch (e) {
+        console.log(e);
+        return false;
+    }
+}
+
 const sendToOperationsChannel = async (proposal: Proposal, token: string, space: string) => {
+    // Skip if proposal is our gauge vote and if it's not YFI (beacause YFI is 100% on snapshot)
+    if(space !== "sdyfi.eth" && proposal.title.indexOf("Gauge vote") > -1) {
+        return;
+    }
+
+    const originSpace = originSpaces[space];
+	const isCurveProposal = originSpace == "curve.eth";
+	
+    let isAngleOnChainProposal = false;
+    let isOnchainProposal = isCurveProposal;
+    let deadline = proposal.end;
+
+    if (originSpace === 'cakevote.eth' || originSpace === 'spectradao.eth') {
+        deadline += DELAY_ONE_DAY;
+    } else if (originSpace === "curve.eth") {
+        deadline += DELAY_CURVE;
+    } else {
+        deadline += DELAY_OTHERS;
+    }	
+
+    let text = "🔒 " + token + " : " + proposal.title.replaceAll("<>", "") + ". <a href='https://snapshot.org/#/" + space + "/proposal/" + proposal.id + "'>Stake DAO</a>\n"
+
+    if (!isOnchainProposal) {
+        const originalProposal = await getOriginalProposal(proposal, space)
+        if (originalProposal === undefined) {
+            isAngleOnChainProposal = true
+            isOnchainProposal = true
+        } else {
+            text += "Snapshot : <a href='https://snapshot.org/#/" + originSpace + "/proposal/" + originalProposal.id + "'>" + originSpace + "</a>\n"
+        }
+    }
+
+    // Compute results
+	const total = proposal.scores.reduce((acc:number, score:number) => acc + score, 0);
+	if (total === 0) {
+		// Nothing to replicate
+		text += "✅ Nothing to replicate"
+	} else if (proposal.quorum > total) {
+		text += "❌ Not replication because of no quorum\n"
+    } else {
+        const votes: string[] = [];
+        let yea = 0;
+        let nay = 0;
+        let totalVotes = 0;
+
+        for (let i = 0; i < proposal.scores.length; i++) {
+            const score = proposal.scores[i];
+            if (score === 0) {
+                continue;
+            }
+
+            const choice = proposal.choices[i];
+            if(choice === "No") {
+                nay += score;
+            } else if(choice === "Yes") {
+                yea += score;
+            }
+
+            totalVotes += score;
+            
+            const percentage = score * 100 / total;
+
+            votes.push(lodhash.round(percentage, 2) + "%" + proposal.choices[i]);
+        }
+
+        let replicateDone = false;
+        if (isCurveProposal) {
+            const links = linkify.find(proposal.body);
+            if (links.length > 0) {
+                const link = links[0];
+                const slashes = link.href.split("/")
+                let voteId: number | undefined = undefined;
+                if (slashes.length > 0) {
+                    voteId = parseInt(slashes[slashes.length - 1]);
+                    if (isNaN(voteId)) {
+                        voteId = undefined;
+                    }
+                }
+
+                if (voteId === undefined) {
+                    text += "❌ Can't extract vote id\n"
+                } else {
+                    let votingAddress = undefined;
+                    if (link.value.includes("ownership")) {
+                        votingAddress = "0xE478de485ad2fe566d49342Cbd03E49ed7DB3356"
+                    } else if (link.value.includes("parameter")) {
+                        votingAddress = "0xBCfF8B0b9419b9A88c44546519b1e909cF330399"
+                    }
+
+                    // Get PCT_BASE
+                    const pctBase = await getPctBase(votingAddress);
+                    if (pctBase === undefined) {
+                        text += "❌ Error when fetch PCT_BASE\n"
+                    } else {
+                        text += "Voter : " + CURVE_VOTER + "\n"
+                        text += "Voting address : " + votingAddress + "\n"
+
+                        const yeaBN = Math.floor(yea / totalVotes * pctBase);
+                        const nayBN = pctBase - yeaBN;
+
+                        const payload = encodeFunctionData({
+                            abi: CurveVoterABI,
+                            functionName: 'votePct',
+                            args: [BigInt(voteId), BigInt(yeaBN), BigInt(nayBN), votingAddress]
+                        });
+
+                        text += "Payload : " + payload + "\n"
+                    }
+                }
+            } else {
+                text += "❌ Can't extract http link\n"
+            }
+        } else if (isAngleOnChainProposal) {
+            if (proposal.choices.length === 3) {
+                const angleProposal = await getOriginalAngleProposal(proposal);
+                if (angleProposal === undefined) {
+                    text += "❌ Error when try to fetch original angle proposal \n"
+                } else {
+                    const snapshotTimestamp = parseInt(angleProposal.snapshotTimestamp);
+                    if (isNaN(snapshotTimestamp)) {
+                        text += "❌ Error when try to fetch original angle proposal - convert snapshot timestamp \n"
+                    } else {
+                        const votingPower = await getAngleVotingPower(snapshotTimestamp);
+                        if(votingPower === undefined) {
+                            text += "❌ Error when try to fetch original angle proposal - voting power \n"
+                        } else {
+
+                            let against = parseUnits(proposal.choices[0], 18);
+                            let forr = parseUnits(proposal.choices[1], 18);
+                            let abstain = parseUnits(proposal.choices[2], 18);
+
+                            const total = against + forr+abstain;
+
+                            const percentageAgainst = against * BigInt(100) / total;
+                            const percentageForr = forr * BigInt(100) / total;
+                            const percentageAbstain = abstain * BigInt(100) / total;
+
+                            against = percentageAgainst * votingPower / BigInt(100);
+                            forr = percentageForr * votingPower / BigInt(100);
+                            abstain = percentageAbstain * votingPower / BigInt(100);
+
+                            const id = hexToBigInt(angleProposal.id as `0x${string}`, { size: 32 })
+
+                            const payload = encodeFunctionData({
+                                abi: AngleGovernorABI,
+                                functionName: 'castVoteWithReasonAndParams',
+                                args: [id, BigInt(0), "",  against, forr, abstain]
+                            });
+    
+                            text += "Angle voter V5 : " + ANGLE_VOTER + "\n"
+							text += "Payload : " + payload + "\n"
+                        }
+                    }
+                }
+            } else {
+                text += "❌ should have 3 choices \n"
+            }
+        } else {
+            const originalProposal = await getOriginalProposal(proposal, space)
+            if(originalProposal === undefined) {
+                text += "❌ can't fetch original proposal \n"
+            } else {
+                for (let i = 0; i < 10; i++) {
+                    const success = await replicateVote(proposal, originalProposal);
+                    if (success) {
+                        replicateDone = true;
+                        break;
+                    }
+                }
+            }
+
+            text += "Vote : (" + votes.join(",") + ") : "
+			if (originalProposal !== undefined) {
+				text += "<a href='https://snapshot.org/#/" + originSpace + "/proposal/" + originalProposal.id + "'>" + originSpace + "</a>\n"
+			} else {
+				text += "<a href='https://snapshot.org/#/" + originSpace + "'>" + originSpace + "</a>\n"
+			}
+        }
+
+
+		text += "Deadline : " + moment.unix(deadline).format("LLL") + " @chago0x @hubirb\n"
+
+		if (!isOnchainProposal) {
+			if (replicateDone) {
+				text += "✅ Vote replication done"
+			} else {
+				text += "❌ Vote replication failed"
+			}
+		}
+    }
+
+    try {
+        const response = await axios.post(TELEGRAM_API, null, {
+            params: {
+                chat_id: TELEGRAM_GOVERNANCE_ID,
+                text: text,
+                parse_mode: 'html',
+                disable_web_page_preview: 'true',
+            },
+        });
+        console.log('Message envoyé avec succès:', response.data);
+    } catch (err) {
+        console.error('Erreur lors de l\'envoi du message:', err);
+    }
+
+    await sleep(1000)
 
 }
 
+interface ProposalFetched {
+    id: string;
+    ts: number;
+}
+
 const main = async () => {
+
+    const proposalsFetched: ProposalFetched[][] = JSON.parse(fs.readFileSync("./data/replication_proposals.json", { encoding: 'utf-8' }));
     const timePerSpaces: Record<string, number> = JSON.parse(fs.readFileSync("./data/replication.json", { encoding: 'utf-8' }));
     const now = moment().unix();
     const ens = Object.keys(spaces);
@@ -293,19 +786,33 @@ const main = async () => {
     }
 
     // Check reminders
-    let reminderTimestamp = moment().add(2, "h").unix()
+    let reminderTimestamp = moment.unix(now).add(2, "h").unix()
     for (const space of ens) {
         const proposals = await getReminder(space, reminderTimestamp);
         for (const proposal of proposals) {
+            if (proposalsFetched[0].find((p) => p.id.toLowerCase() === proposal.id.toLowerCase())) {
+                continue;
+            }
             await sendTextToTelegramChat(proposal, spaces[space], true, false, false);
+            proposalsFetched[0].push({
+                id: proposal.id,
+                ts: now,
+            });
         }
     }
 
-    reminderTimestamp = moment().add(1, "d").unix()
+    reminderTimestamp = moment.unix(now).add(1, "d").unix()
     for (const space of ens) {
         const proposals = await getReminder(space, reminderTimestamp);
         for (const proposal of proposals) {
+            if (proposalsFetched[1].find((p) => p.id.toLowerCase() === proposal.id.toLowerCase())) {
+                continue;
+            }
             await sendTextToTelegramChat(proposal, spaces[space], false, true, false);
+            proposalsFetched[1].push({
+                id: proposal.id,
+                ts: now,
+            });
         }
     }
 
@@ -313,8 +820,15 @@ const main = async () => {
     for (const space of ens) {
         const proposals = await getClosed(space);
         for (const proposal of proposals) {
+            if (proposalsFetched[2].find((p) => p.id.toLowerCase() === proposal.id.toLowerCase())) {
+                continue;
+            }
             await sendTextToTelegramChat(proposal, spaces[space], false, false, true);
             await sendToOperationsChannel(proposal, spaces[space], space);
+            proposalsFetched[2].push({
+                id: proposal.id,
+                ts: now,
+            });
         }
     }
 
@@ -323,7 +837,15 @@ const main = async () => {
         timePerSpaces[space] = now;
     }
 
+    // Clear proposals fetched
+    const twoDaysAgo = now - ONE_HOUR * 24 * 2;
+    const newProposalFetched: ProposalFetched[][] = [];
+    newProposalFetched.push(proposalsFetched[0].filter((p) => p.ts < twoDaysAgo));
+    newProposalFetched.push(proposalsFetched[1].filter((p) => p.ts < twoDaysAgo));
+    newProposalFetched.push(proposalsFetched[2].filter((p) => p.ts < twoDaysAgo));
+
     fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), {encoding: 'utf-8'});
+    fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), {encoding: 'utf-8'});
 };
 
 main().catch((error) => {
