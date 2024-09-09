@@ -301,18 +301,21 @@ const handleBasicSnaphsot = async (space: string) => {
 
     const result = await fetchProtocolProposal({ space, minCreated });
     for (const proposal of result) {
+        let end = proposal.end;
         if (space === 'cakevote.eth' || space === 'spectradao.eth') {
-            proposal.end = proposal.end - DELAY_ONE_DAYS;
+            end = proposal.end - DELAY_ONE_DAYS;
         } else {
-            proposal.end = proposal.end - DELAY_TWO_DAYS;
+            end = proposal.end - DELAY_TWO_DAYS;
         }
-
-        console.log(`Handle proposal :  ${proposal.title}`);
 
         if (space === "veyfi.eth" && proposal.title?.indexOf("dYFI emission") > -1) {
             proposal.title = "Gauge vote YFI - " + proposal.title;
+            end  = proposal.end - DELAY_ONE_DAYS;
         }
 
+        console.log(`Handle proposal : ${proposal.title}`);
+
+        proposal.end = end;
         proposal.metadata = { url: `https://snapshot.org/#/anglegovernance.eth/proposal/${proposal.id}` };
 
         await createProposal({ payload: proposal });

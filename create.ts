@@ -684,8 +684,12 @@ const main = async () => {
     }
     else if (space === "sdapw.eth") {
       endProposal = moment(startProposalDate).add(13, 'days');
-    } else {
-      endProposal = moment(startProposalDate).add(isPendle ? 6 : 13, 'days');
+    }
+    else if (isPendle) {
+      endProposal = moment(startProposalDate).add(6, 'days');
+    }
+    else {
+      endProposal = moment(startProposalDate).add(13, 'days');
     }
 
     const dayEnd = endProposal.date();
