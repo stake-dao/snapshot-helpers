@@ -723,11 +723,15 @@ const main = async () => {
       const receipt = await client.proposal(web3 as any, web3.address, proposal) as any;
 
       if (space === "sdcrv.eth") {
+        await sleep(10_000);
+
         // Push a vote on mainnet from PK for sdCRV/CRV gauge
         await voteCRV(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
         await voteCRV(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
         await voteCRV(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
       } else if (space === "sdcake.eth") {
+        await sleep(10_000);
+        
         await voteCake(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY);
       }
     }
