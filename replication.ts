@@ -612,7 +612,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
             
             const percentage = score * 100 / total;
 
-            votes.push(lodhash.round(percentage, 2) + "%" + proposal.choices[i]);
+            votes.push(lodhash.round(percentage, 2) + "% " + proposal.choices[i]);
         }
 
         let replicateDone = false;
@@ -657,6 +657,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                         });
 
                         text += "Payload : " + payload + "\n"
+                        text += "Vote : (" + votes.join(",") + ")\n"
                     }
                 }
             } else {
@@ -701,6 +702,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
     
                             text += "Angle voter V5 : " + ANGLE_VOTER + "\n"
 							text += "Payload : " + payload + "\n"
+                            text += "Vote : (" + votes.join(",") + ")\n"
                         }
                     }
                 }
