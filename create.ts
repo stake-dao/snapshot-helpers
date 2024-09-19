@@ -232,10 +232,78 @@ const getPancakeGauges = async (): Promise<string[]> => {
     "0x8b626Acfb32CDad0d2F3b493Eb9928BbA1BbBcCa"
   ];
 
+  const etherscans = [
+    {
+      chain: chains.bsc,
+      apiKey: process.env.BSCSCAN_API_KEY,
+      url: 'api.bscscan.com',
+      blockPerSec: 3
+    },
+    {
+      chain: chains.mainnet,
+      apiKey: process.env.ETHERSCAN_API_KEY,
+      url: 'api.etherscan.io',
+      blockPerSec: 12
+    },
+    {
+      chain: chains.arbitrum,
+      apiKey: process.env.ARBISCAN_API_KEY,
+      url: 'api.arbiscan.io',
+      blockPerSec: 0.25
+    }
+  ];
+
+  // Fetch blocknumbers
+  const blockNumbers: Record<number, number> = {};
+  for (const etherscan of etherscans) {
+    const client = createPublicClient({
+      chain: etherscan.chain,
+      transport: http()
+    });
+
+    const currentBlockNumber = await client.getBlockNumber();
+    blockNumbers[etherscan.chain.id] = Number(currentBlockNumber)
+  }
+
+  const now = moment().unix();
+
   for (const gauge of gauges) {
     const isBlacklisted = blacklists.find((addr) => addr.toLowerCase() === gauge.address.toLowerCase()) !== undefined;
-    if(isBlacklisted) {
+    if (isBlacklisted) {
       continue;
+    }
+
+    // Check if older than one year and weight = 0
+    const etherscan = etherscans.find((e) => e.chain.id === gauge.chainId);
+    if (etherscan && gauge.weight === '0') {
+      try {
+        const { data: resp } = await axios.get(`https://${etherscan.url}/api?module=contract&action=getcontractcreation&contractaddresses=${gauge.address}&apikey=${etherscan.apiKey}`)
+        // Rate limite
+        await sleep(200)
+        if (resp.result?.length > 0) {
+          const txHash = resp.result[0].txHash;
+
+          const client = createPublicClient({
+            chain: etherscan.chain,
+            transport: http()
+          });
+
+          const transaction = await client.getTransactionReceipt({ hash: txHash });
+          if (transaction) {
+            // On BSC chain, 1 block every 3 seconds
+            const diffBlocks = blockNumbers[etherscan.chain.id] - Number(transaction.blockNumber)
+            const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
+            const isOldOneYear = (now - createdTimestamp) >= (365 * 86400)
+            if (isOldOneYear) {
+              // Skip
+              continue;
+            }
+          }
+        }
+      }
+      catch (e) {
+
+      }
     }
 
     response.push(gauge.pairName + " / " + getChainIdName(gauge.chainId) + " - " + extractAddress(gauge.address));
