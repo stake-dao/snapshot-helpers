@@ -232,6 +232,8 @@ const getPancakeGauges = async (): Promise<string[]> => {
     "0x8b626Acfb32CDad0d2F3b493Eb9928BbA1BbBcCa"
   ];
 
+  console.log(process.env.BSCSCAN_API_KEY, process.env.ETHERSCAN_API_KEY, process.env.ARBISCAN_API_KEY)
+
   const etherscans = [
     {
       chain: chains.bsc,
@@ -309,6 +311,7 @@ const getPancakeGauges = async (): Promise<string[]> => {
     response.push(gauge.pairName + " / " + getChainIdName(gauge.chainId) + " - " + extractAddress(gauge.address));
   }
 
+  console.log("nb pancake gauge : ", response.length);
   return response;
 };
 
