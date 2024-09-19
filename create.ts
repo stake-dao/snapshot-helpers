@@ -231,9 +231,7 @@ const getPancakeGauges = async (): Promise<string[]> => {
     "0xBc5Bbf09F1d20724E083E75B92E48073172576f7",
     "0x8b626Acfb32CDad0d2F3b493Eb9928BbA1BbBcCa"
   ];
-
-  console.log(process.env.BSCSCAN_API_KEY, process.env.ETHERSCAN_API_KEY, process.env.ARBISCAN_API_KEY)
-
+  
   const etherscans = [
     {
       chain: chains.bsc,
