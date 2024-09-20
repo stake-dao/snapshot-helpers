@@ -6,7 +6,9 @@ on:
     - cron: '*/5 * * * *' # Every 5 minutes
   
 env:
-  PKS: ${{ secrets.PKS }}
+  PK_1: ${{ secrets.PK_1 }}
+  PK_2: ${{ secrets.PK_2 }}
+  PK_3: ${{ secrets.PK_3 }}
   TG_API_KEY_GOV_CHANNEL: ${{ secrets.TG_API_KEY_GOV_CHANNEL }}
   TG_API_KEY: ${{ secrets.TG_API_KEY }}
   PK_BOT_REPLICATION: ${{ secrets.PK_BOT_REPLICATION }}

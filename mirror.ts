@@ -141,7 +141,8 @@ const createProposal = async ({ payload }: any) => {
     }
 
     let lastError: any = null;
-    for (const pk of process.env.PKS!.split(' ')) {
+    const pks = [process.env.PK_1, process.env.PK_2, process.env.PK_3];
+    for (const pk of pks) {
         const signer = new Wallet(pk, provider);
         const address = signer.address;
         const nbActiveProposal = await fetchNbActiveProtocolProposal(address);
