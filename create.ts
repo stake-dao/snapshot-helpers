@@ -810,6 +810,23 @@ const main = async () => {
   }
 }
 
+const votes = async () => {
+  const crvId = "0xfcca11edf4e5013eeebb0187e11568d67df58d61013fe4ab2219d0fcc8295d97";
+  const cakeId = "";
+
+  if (crvId.length > 0) {
+    const crvGauges = await getCurveGauges();
+    await voteCRV(crvGauges, crvId as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
+    await voteCRV(crvGauges, crvId as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+    await voteCRV(crvGauges, crvId as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
+  }
+
+  if (cakeId.length > 0) {
+    const cakeGauges = await getPancakeGauges();
+    await voteCake(cakeGauges, cakeId as string, process.env.VOTE_PRIVATE_KEY);
+  }
+}
+
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main().catch((error) => {
