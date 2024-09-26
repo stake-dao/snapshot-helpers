@@ -507,6 +507,8 @@ const getSpectraGauges = async (): Promise<string[]> => {
     "Blank"
   ];
 
+  const now = moment().unix();
+
   for (const pool of pools) {
     if (!pool.coinPT || !pool.symbol) {
       continue;
@@ -514,11 +516,17 @@ const getSpectraGauges = async (): Promise<string[]> => {
 
     const splits = pool.symbol.split("-");
     const maturity = parseInt(splits.pop());
+    if(maturity < now) {
+      continue;
+    }
 
     const maturityFormatted = moment.unix(maturity).format("L");
 
     const chainName = pool.chainName.toLowerCase().replace(" ", "");
-    responses.push(chainName + "-" + splits.join("-") + "-" + maturityFormatted);
+    
+    let name = chainName + "-" + splits.join("-") + "-" + maturityFormatted;
+    name = name.replace("-PT", "");
+    responses.push(name);
   }
 
   return responses;
