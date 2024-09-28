@@ -200,7 +200,7 @@ const createProposal = async ({ payload }: any) => {
 
     if (lastError && !errorsCreateProposal[key]) {
         const errTxt = lastError?.error_description || "";
-        bot.sendMessage(chatId, 'Error when mirror proposal ' + proposalId + ' in space ' + SPACES[payload.space.id] + " - " + errTxt + " - waiting resolution");
+        //bot.sendMessage(chatId, 'Error when mirror proposal ' + proposalId + ' in space ' + SPACES[payload.space.id] + " - " + errTxt + " - waiting resolution");
 
         errorsCreateProposal[key] = errTxt;
     }
