@@ -404,15 +404,23 @@ const getOriginalProposal = async (proposal: Proposal, space: string): Promise<P
 }
 
 const getPctBase = async (votingAddress: string): Promise<number | undefined> => {
-    const publicClient = createPublicClient({
-        chain: chains.mainnet,
-        transport: http()
-    });
 
-    // @ts-ignore
-    const res = await publicClient.multicall({contracts: [{address: votingAddress as `0x${string}`,abi: CurveUnderlyingVoterABI as any,functionName: 'PCT_BASE',args: []}]});
+    for (let i = 0; i < 3; i++) {
+        const publicClient = createPublicClient({
+            chain: chains.mainnet,
+            transport: http()
+        });
 
-    return Number(res.shift().result) || undefined;
+        // @ts-ignore
+        const res = await publicClient.multicall({ contracts: [{ address: votingAddress as `0x${string}`, abi: CurveUnderlyingVoterABI as any, functionName: 'PCT_BASE', args: [] }] });
+
+        const pctBase = Number(res.shift().result) || undefined;
+        if (pctBase !== undefined) {
+            return pctBase;
+        }
+    }
+
+    return undefined;
 }
 
 const getOriginalAngleProposal = async(proposal: Proposal): Promise<AngleProposal | undefined> => {
