@@ -14,7 +14,7 @@
     "node-telegram-bot-api": "^0.66.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2",
-    "viem": "^1.19.11"
+    "viem": "~2.19.9"
   },
   "scripts": {
     "start": "npx ts-node create.ts",

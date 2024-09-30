@@ -71,9 +71,8 @@ const getCurveGauges = async (): Promise<string[]> => {
   let results: any[] = [];
   const chunks = lodhash.chunk(calls, 50);
   for (const c of chunks) {
-    const res = await publicClient.multicall({
-      contracts: c,
-    });
+    // @ts-ignore
+    const res = await (publicClient.multicall({contracts: c as any}) as any);
     results = results.concat(res);
   }
 
@@ -403,15 +402,15 @@ const getSpectraGauges = async (): Promise<string[]> => {
   ]);
 
   // Get all ids
-  const results = await publicClient.multicall({
+  const results = await (publicClient.multicall({
     contracts: [
       {
         address: VOTER,
-        abi: voterAbi,
+        abi: voterAbi as any,
         functionName: 'getAllPoolIds',
-      }
-    ]
-  });
+      } as any
+    ] as any
+  }) as any);
 
   const ids = results.shift().result as bigint[];
 
@@ -423,14 +422,14 @@ const getSpectraGauges = async (): Promise<string[]> => {
         abi: voterAbi,
         functionName: 'isVoteAuthorized',
         args: [id]
-      }
+      } as any
     })
   });
 
   const idsAuthorized: bigint[] = []
   for (let i = 0; i < ids.length; i++) {
     const id = ids[i];
-    const isAuthorized = results2.shift().result as boolean;
+    const isAuthorized = (results2.shift().result as any) as boolean;
     if (isAuthorized) {
       idsAuthorized.push(id);
     }

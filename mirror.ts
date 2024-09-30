@@ -5,6 +5,8 @@ import axios from "axios";
 import * as dotenv from "dotenv";
 import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
 import { Wallet } from "ethers";
+import { createPublicClient, http } from "viem";
+import * as chains from 'viem/chains'
 
 dotenv.config();
 
@@ -165,6 +167,29 @@ const createProposal = async ({ payload }: any) => {
         title = title || "No title";
         body = body || "No body";
 
+        let network = "1"
+        switch (payload.space.id) {
+            case "cakevote.eth":
+                network = "56";
+                break;
+            case "frax.eth":
+                const publicClient = createPublicClient({
+                    chain: chains.fraxtal,
+                    transport: http("https://rpc.frax.com")
+                });
+                const block = await publicClient.getBlock({
+                    blockNumber: BigInt(payload.snapshot.toString()),
+                    includeTransactions: false
+                });
+                const blockTimestamp = Number(block.timestamp);
+                const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${blockTimestamp}`);
+                const mainnetBlock = mainnetBlockRes.height;
+                payload.snapshot = mainnetBlock.toString()
+                break;
+            default:
+                break;
+        }
+
         const proposal: any = {
             space: SPACES[payload.space.id],
             type: payload.type,
@@ -175,7 +200,7 @@ const createProposal = async ({ payload }: any) => {
             start: payload.start,
             end: end,
             snapshot: parseInt(payload.snapshot),
-            network: payload.space.id === "cakevote.eth" ? "56" : "1",
+            network,
             strategies: JSON.stringify({}),
             plugins: JSON.stringify({}),
             metadata: JSON.stringify({}),
