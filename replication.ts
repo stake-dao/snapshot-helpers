@@ -409,16 +409,8 @@ const getPctBase = async (votingAddress: string): Promise<number | undefined> =>
         transport: http()
     });
 
-    const res = await publicClient.multicall({
-        contracts: [
-            {
-                address: votingAddress as `0x${string}`,
-                abi: CurveUnderlyingVoterABI as any,
-                functionName: 'PCT_BASE',
-                args: []
-            }
-        ],
-    });
+    // @ts-ignore
+    const res = await publicClient.multicall({contracts: [{address: votingAddress as `0x${string}`,abi: CurveUnderlyingVoterABI as any,functionName: 'PCT_BASE',args: []}]});
 
     return Number(res.shift().result) || undefined;
 }
