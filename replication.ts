@@ -412,9 +412,13 @@ const getPctBase = async (votingAddress: string): Promise<number | undefined> =>
         });
 
         // @ts-ignore
-        const res = await publicClient.multicall({ contracts: [{ address: votingAddress as `0x${string}`, abi: CurveUnderlyingVoterABI as any, functionName: 'PCT_BASE', args: [] }] });
+        const response = await publicClient.readContract({
+            address: votingAddress as `0x${string}`,
+            abi: CurveUnderlyingVoterABI,
+            functionName: 'PCT_BASE',
+        });
 
-        const pctBase = Number(res.shift().result) || undefined;
+        const pctBase = Number(response) || undefined;
         if (pctBase !== undefined) {
             return pctBase;
         }
@@ -483,22 +487,14 @@ const getAngleVotingPower = async (snapshotTimestamp: number): Promise<bigint | 
         transport: http()
     });
 
-    const res = await publicClient.multicall({
-        contracts: [
-            {
-                address: ANGLE_GOVERNOR as `0x${string}`,
-                abi: AngleGovernorABI as any,
-                functionName: 'getVotes',
-                args: [ANGLE_LOCKER, snapshotTimestamp]
-            }
-        ],
-    });
+    const response = await publicClient.readContract({
+        address: ANGLE_GOVERNOR as `0x${string}`,
+        abi: AngleGovernorABI,
+        functionName: 'getVotes',
+        args: [ANGLE_LOCKER, snapshotTimestamp]
+      });
 
-    const response = res.shift();
-    if (response.error || !response.result) {
-        return undefined;
-    }
-    return BigInt(response.result as any) || undefined;
+    return BigInt(response as any) || undefined;
 }
 
 const replicateVote = async (proposalSD: Proposal, originalProposal: Proposal): Promise<boolean> => {
@@ -817,7 +813,7 @@ const main = async () => {
             });
         }
     }
-
+   
     // Check closed
     for (const space of ens) {
         const proposals = await getClosed(space);
