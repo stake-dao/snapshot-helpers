@@ -636,7 +636,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                     }
 
                     // Get PCT_BASE
-                    const pctBase = await getPctBase(votingAddress);
+                    const pctBase = Number(BigInt("1000000000000000000"))// await getPctBase(votingAddress);
                     if (pctBase === undefined) {
                         text += "❌ Error when fetch PCT_BASE\n"
                     } else {
