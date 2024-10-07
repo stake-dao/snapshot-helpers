@@ -640,6 +640,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                     if (pctBase === undefined) {
                         text += "❌ Error when fetch PCT_BASE\n"
                     } else {
+                        text += "Vote id : " + voteId + "\n"
                         text += "Voter : " + CURVE_VOTER + "\n"
                         text += "Voting address : " + votingAddress + "\n"
 
