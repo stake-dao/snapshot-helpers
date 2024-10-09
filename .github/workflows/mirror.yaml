@@ -12,6 +12,7 @@ env:
   TG_API_KEY_GOV_CHANNEL: ${{ secrets.TG_API_KEY_GOV_CHANNEL }}
   TG_API_KEY: ${{ secrets.TG_API_KEY }}
   PK_BOT_REPLICATION: ${{ secrets.PK_BOT_REPLICATION }}
+  TG_API_KEY_BOT_ERROR: ${{ secrets.TG_API_KEY_BOT_ERROR }}
 
 jobs:
   build: # make sure build/ci work properly

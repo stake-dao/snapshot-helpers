@@ -14,6 +14,7 @@ env:
   BSCSCAN_API_KEY: ${{ secrets.BSCSCAN_API_KEY }}
   ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
   ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
+  TG_API_KEY_BOT_ERROR: ${{ secrets.TG_API_KEY_BOT_ERROR }}
 
 jobs:
   build: # make sure build/ci work properly

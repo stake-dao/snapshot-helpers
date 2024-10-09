@@ -8,6 +8,7 @@ import * as chains from 'viem/chains'
 import { createPublicClient, http, parseAbi } from "viem";
 import * as lodhash from 'lodash';
 import { sleep } from "./utils/sleep";
+import { sendMessage } from "./utils/telegram";
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
 const NETWORK_BY_SPACE = {
@@ -799,20 +800,23 @@ const main = async () => {
       const receipt = await client.proposal(web3 as any, web3.address, proposal) as any;
 
       if (space === "sdcrv.eth") {
-        await sleep(10_000);
+        // Wait 5 minutes to be in the voting window
+        await sleep(5 * 60 * 1000);
 
         // Push a vote on mainnet from PK for sdCRV/CRV gauge
         await voteCRV(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
         await voteCRV(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
         await voteCRV(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
       } else if (space === "sdcake.eth") {
-        await sleep(10_000);
-        
+        // Wait 5 minutes to be in the voting window
+        await sleep(5 * 60 * 1000);
+
         await voteCake(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY);
       }
     }
     catch (e) {
       console.error(e);
+      await sendMessage("Create gauge proposals", `Space ${space} - ${e.error_description || e.message || ""}`);
     }
   }
 }

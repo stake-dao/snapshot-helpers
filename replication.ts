@@ -728,7 +728,6 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 			}
         }
 
-
 		text += "Deadline : " + moment.unix(deadline).format("LLL") + " @chago0x @hubirb\n"
 
 		if (!isOnchainProposal) {
@@ -755,7 +754,6 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
     }
 
     await sleep(1000)
-
 }
 
 interface ProposalFetched {
