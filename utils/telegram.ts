@@ -34,5 +34,3 @@ export const sendMessage = async (botName: string, message: string): Promise<boo
         return false;
     }
 }
-
-sendMessage("toto","test")

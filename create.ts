@@ -580,6 +580,7 @@ const voteCRV = async (gauges: string[], proposalId: string, pkStr: string, targ
   }
   catch (e) {
     console.log(e);
+    await sendMessage(`Create weekly proposal`, `Can't vote for CRV proposal - ${e.error_description || e.message || ""}`);
   }
 };
 
@@ -641,6 +642,7 @@ const voteCake = async (gauges: string[], proposalId: string, pkStr: string) => 
   }
   catch (e) {
     console.log(e);
+    await sendMessage(`Create weekly proposal`, `Can't vote for CAKE proposal - ${e.error_description || e.message || ""}`);
   }
 };
 
@@ -822,7 +824,7 @@ const main = async () => {
 }
 
 const votes = async () => {
-  const crvId = "0xfcca11edf4e5013eeebb0187e11568d67df58d61013fe4ab2219d0fcc8295d97";
+  const crvId = "0x21f3459d819727a34cb01654745cd5cd6c8a23dee31f718e40ae1cae56b2f1a3";
   const cakeId = "";
 
   if (crvId.length > 0) {
