@@ -36,6 +36,7 @@ const ANGLE_VOTER = "0x0E0F27b9d5F2bc742Bf547968d2f07dECBCf1A23"
 
 // Snapshot
 const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql');
+const HUB_CLIENT = 'https://hub.snapshot.org';
 
 const spaces: Record<string, string> = {
     "sdangle.eth": "ANGLE",
@@ -497,7 +498,7 @@ const getAngleVotingPower = async (snapshotTimestamp: number): Promise<bigint | 
     return BigInt(response as any) || undefined;
 }
 
-const replicateVote = async (proposalSD: Proposal, originalProposal: Proposal): Promise<boolean> => {
+const replicateVote = async (space: string, proposalSD: Proposal, originalProposal: Proposal): Promise<boolean> => {
     try {
         let choice = null;
 
@@ -521,22 +522,37 @@ const replicateVote = async (proposalSD: Proposal, originalProposal: Proposal): 
             }
         }
 
-        const RPC_PROVIDER_URL = proposalSD.network === "1" ? "https://eth.public-rpc.com" : "https://rpc.ankr.com/bsc";
-        const provider = new JsonRpcProvider(RPC_PROVIDER_URL);
-        const signer = new Wallet(process.env.PK_BOT_REPLICATION, provider);
-        const address = signer.address; // 0xa9B3C2209e85B136610959b85379Ce3c2c50eB7E
+        let rpcProviderUrl = "";
+        let pks: string[] = [];
 
-        const hubClient = 'https://hub.snapshot.org';
-        const client = new snapshot.Client712(hubClient);
+        if (space === 'sdfxs.eth') {
+            rpcProviderUrl = "https://rpc.frax.com";
 
-        await client.vote(signer as any, address, {
-            space: originalProposal.space.id,
-            proposal: originalProposal.id,
-            type: originalProposal.type as any,
-            choice,
-            metadata: JSON.stringify({}),
-            reason: 'Stake DAO ' + proposalSD.space.symbol.replace("sd", "") + ' Liquid Locker'
-        });
+            // 0x0116Bf9b4614B42c78302Eb2dEB31f2329ec6152 => mainnet
+            // 0x7191045aDC32132Ec7766A77f0892797D8282F86 => fraxtal
+            pks = [process.env.FRAX_DELEGATION_MAINNET, process.env.FRAX_DELEGATION_FRAXTAL];
+        } else {
+            rpcProviderUrl = proposalSD.network === "1" ? "https://eth.public-rpc.com" : "https://rpc.ankr.com/bsc";
+            pks = [process.env.PK_BOT_REPLICATION];
+        }
+
+        const provider = new JsonRpcProvider(rpcProviderUrl);
+        const client = new snapshot.Client712(HUB_CLIENT);
+
+        for (const pk of pks) {
+            const signer = new Wallet(pk, provider);
+            const address = signer.address;
+
+            await client.vote(signer as any, address, {
+                space: originalProposal.space.id,
+                proposal: originalProposal.id,
+                type: originalProposal.type as any,
+                choice,
+                metadata: JSON.stringify({}),
+                reason: 'Stake DAO ' + proposalSD.space.symbol.replace("sd", "") + ' Liquid Locker'
+            });
+        }
+
         return true;
     }
     catch (e) {
@@ -712,7 +728,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                 text += "❌ can't fetch original proposal \n"
             } else {
                 for (let i = 0; i < 10; i++) {
-                    const success = await replicateVote(proposal, originalProposal);
+                    const success = await replicateVote(space, proposal, originalProposal);
                     if (success) {
                         replicateDone = true;
                         break;
