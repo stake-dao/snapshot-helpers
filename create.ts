@@ -293,7 +293,7 @@ const getPancakeGauges = async (): Promise<string[]> => {
             // On BSC chain, 1 block every 3 seconds
             const diffBlocks = blockNumbers[etherscan.chain.id] - Number(transaction.blockNumber)
             const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
-            const isOldOneYear = (now - createdTimestamp) >= (365 * 86400)
+            const isOldOneYear = (now - createdTimestamp) >= ((30*11) * 86400)
             if (isOldOneYear) {
               // Skip
               continue;
