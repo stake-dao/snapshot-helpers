@@ -9,6 +9,7 @@ import { createPublicClient, http, parseAbi } from "viem";
 import * as lodhash from 'lodash';
 import { sleep } from "./utils/sleep";
 import { sendMessage } from "./utils/telegram";
+import { CHAIN_ID_TO_RPC } from "./utils/constants";
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
 const NETWORK_BY_SPACE = {
@@ -47,7 +48,7 @@ const getCurveGauges = async (): Promise<string[]> => {
 
   const publicClient = createPublicClient({
     chain: chains.mainnet,
-    transport: http()
+    transport: http(CHAIN_ID_TO_RPC[1])
   });
 
   const gcAbi = parseAbi([
@@ -258,7 +259,7 @@ const getPancakeGauges = async (): Promise<string[]> => {
   for (const etherscan of etherscans) {
     const client = createPublicClient({
       chain: etherscan.chain,
-      transport: http()
+      transport: http(CHAIN_ID_TO_RPC[etherscan.chain.id])
     });
 
     const currentBlockNumber = await client.getBlockNumber();
@@ -285,7 +286,7 @@ const getPancakeGauges = async (): Promise<string[]> => {
 
           const client = createPublicClient({
             chain: etherscan.chain,
-            transport: http()
+            transport: http(CHAIN_ID_TO_RPC[etherscan.chain.id])
           });
 
           const transaction = await client.getTransactionReceipt({ hash: txHash });
@@ -381,7 +382,7 @@ const getSpectraGauges = async (): Promise<string[]> => {
 
   const publicClient = createPublicClient({
     chain: chains.mainnet,
-    transport: http()
+    transport: http(CHAIN_ID_TO_RPC[1])
   });
 
   const voterAbi = parseAbi([
@@ -469,7 +470,7 @@ const getSpectraGauges = async (): Promise<string[]> => {
 
     const client = createPublicClient({
       chain: chain,
-      transport: http()
+      transport: http(CHAIN_ID_TO_RPC[pool.chainId])
     });
 
     const res = await client.multicall({
@@ -523,7 +524,7 @@ const getSpectraGauges = async (): Promise<string[]> => {
     const maturityFormatted = moment.unix(maturity).format("L");
 
     const chainName = pool.chainName.toLowerCase().replace(" ", "");
-    
+
     let name = chainName + "-" + splits.join("-") + "-" + maturityFormatted;
     name = name.replace("-PT", "");
     responses.push(name);
