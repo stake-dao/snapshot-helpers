@@ -5,6 +5,7 @@ import { Wallet } from "@ethersproject/wallet";
 import axios from "axios";
 import * as dotenv from "dotenv";
 import moment from "moment";
+import * as momentTimezone from "moment-timezone";
 import { sleep } from "./utils/sleep";
 import fs from 'fs';
 import * as lodhash from 'lodash';
@@ -15,6 +16,7 @@ import AngleGovernorABI from './abis/AngleGovernor.json';
 import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseUnits } from "viem";
 import * as chains from 'viem/chains'
 import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
+import { sendTgMessage } from "./utils/telegram";
 
 dotenv.config();
 
@@ -28,6 +30,9 @@ const TELEGRAM_API = "https://api.telegram.org/bot" + API_TOKEN_SD + "/sendMessa
 const TELEGRAM_CHANNEL_ID = "@MetaGovernanceSD"
 const TELEGRAM_GOVERNANCE_ID = "-1002204618754"
 const CURVE_VOTER = "0x20b22019406Cf990F0569a6161cf30B8e6651dDa"
+
+// Files
+const MESSAGES_PATH_FILE = "./data/messages.json";
 
 // ANGLE
 const ANGLE_GOVERNOR = "0x748bA9Cd5a5DDba5ABA70a4aC861b2413dCa4436"
@@ -102,6 +107,22 @@ interface AngleProposal {
 }
 interface AngleGraphQLResponse {
     proposals: AngleProposal[];
+}
+
+interface IMessage {
+    space: string;
+    voter: string;
+    payload: string;
+    text: string;
+    votes: string;
+    voteId: number;
+    votingAddress: string;
+    deadline: number;
+}
+
+interface IStoredMessages {
+    lastSend: number;
+    messages: IMessage[];
 }
 
 const sendTextToTelegramChat = async (
@@ -570,6 +591,8 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
     const originSpace = originSpaces[space];
 	const isCurveProposal = originSpace == "curve.eth";
 	
+    let msg: IMessage | undefined = undefined;
+    let sendTgAlert = false;
     let isAngleOnChainProposal = false;
     let isOnchainProposal = isCurveProposal;
     let deadline = proposal.end;
@@ -598,8 +621,10 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 	const total = proposal.scores.reduce((acc:number, score:number) => acc + score, 0);
 	if (total === 0) {
 		// Nothing to replicate
+        sendTgAlert = true;
 		text += "✅ Nothing to replicate"
 	} else if (proposal.quorum > total) {
+        sendTgAlert = true;
 		text += "❌ Not replication because of no quorum\n"
     } else {
         const votes: string[] = [];
@@ -628,6 +653,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
         }
 
         let replicateDone = false;
+
         if (isCurveProposal) {
             const links = linkify.find(proposal.body);
             if (links.length > 0) {
@@ -642,23 +668,22 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                 }
 
                 if (voteId === undefined) {
-                    text += "❌ Can't extract vote id\n"
+                    text += "❌ Can't extract vote id\n";
+                    sendTgAlert = true;
                 } else {
                     let votingAddress = undefined;
                     if (link.value.includes("ownership")) {
-                        votingAddress = "0xE478de485ad2fe566d49342Cbd03E49ed7DB3356"
+                        votingAddress = "0xE478de485ad2fe566d49342Cbd03E49ed7DB3356";
                     } else if (link.value.includes("parameter")) {
-                        votingAddress = "0xBCfF8B0b9419b9A88c44546519b1e909cF330399"
+                        votingAddress = "0xBCfF8B0b9419b9A88c44546519b1e909cF330399";
                     }
 
                     // Get PCT_BASE
                     const pctBase = Number(BigInt("1000000000000000000"))// await getPctBase(votingAddress);
                     if (pctBase === undefined) {
-                        text += "❌ Error when fetch PCT_BASE\n"
+                        text += "❌ Error when fetch PCT_BASE\n";
+                        sendTgAlert = true;
                     } else {
-                        text += "Vote id : " + voteId + "\n"
-                        text += "Voter : " + CURVE_VOTER + "\n"
-                        text += "Voting address : " + votingAddress + "\n"
 
                         const yeaBN = Math.floor(yea / totalVotes * pctBase);
                         const nayBN = pctBase - yeaBN;
@@ -669,26 +694,38 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                             args: [BigInt(voteId), BigInt(yeaBN), BigInt(nayBN), votingAddress]
                         });
 
-                        text += "Payload : " + payload + "\n"
-                        text += "Vote : (" + votes.join(",") + ")\n"
+                        msg = {
+                            payload,
+                            space,
+                            text,
+                            voteId,
+                            voter: CURVE_VOTER,
+                            votes: votes.join(","),
+                            votingAddress,
+                            deadline
+                        };
                     }
                 }
             } else {
-                text += "❌ Can't extract http link\n"
+                text += "❌ Can't extract http link\n";
+                sendTgAlert = true;
             }
         } else if (isAngleOnChainProposal) {
             if (proposal.choices.length === 3) {
                 const angleProposal = await getOriginalAngleProposal(proposal);
                 if (angleProposal === undefined) {
                     text += "❌ Error when try to fetch original angle proposal \n"
+                    sendTgAlert = true;
                 } else {
                     const snapshotTimestamp = parseInt(angleProposal.snapshotTimestamp);
                     if (isNaN(snapshotTimestamp)) {
                         text += "❌ Error when try to fetch original angle proposal - convert snapshot timestamp \n"
+                        sendTgAlert = true;
                     } else {
                         const votingPower = await getAngleVotingPower(snapshotTimestamp);
                         if(votingPower === undefined) {
                             text += "❌ Error when try to fetch original angle proposal - voting power \n"
+                            sendTgAlert = true;
                         } else {
 
                             let against = parseUnits(proposal.choices[0], 18);
@@ -712,17 +749,26 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                                 functionName: 'castVoteWithReasonAndParams',
                                 args: [id, BigInt(0), "",  against, forr, abstain]
                             });
-    
-                            text += "Angle voter V5 : " + ANGLE_VOTER + "\n"
-							text += "Payload : " + payload + "\n"
-                            text += "Vote : (" + votes.join(",") + ")\n"
+
+                            msg = {
+                                payload,
+                                space,
+                                text,
+                                voteId: 0,
+                                voter: ANGLE_VOTER,
+                                votes: votes.join(","),
+                                votingAddress: "",
+                                deadline
+                            };
                         }
                     }
                 }
             } else {
                 text += "❌ should have 3 choices \n"
+                sendTgAlert = true;
             }
         } else {
+            sendTgAlert = true;
             const originalProposal = await getOriginalProposal(proposal, space)
             if(originalProposal === undefined) {
                 text += "❌ can't fetch original proposal \n"
@@ -744,7 +790,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 			}
         }
 
-		text += "Deadline : " + moment.unix(deadline).format("LLL") + " @chago0x @hubirb\n"
+        text += "Deadline : " + moment.unix(deadline).format("LLL") + " @chago0x @hubirb\n"
 
 		if (!isOnchainProposal) {
 			if (replicateDone) {
@@ -755,21 +801,56 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 		}
     }
 
-    try {
-        const response = await axios.post(TELEGRAM_API, null, {
-            params: {
-                chat_id: TELEGRAM_GOVERNANCE_ID,
-                text: text,
-                parse_mode: 'html',
-                disable_web_page_preview: 'true',
-            },
-        });
-        console.log('Message envoyé avec succès:', response.data);
-    } catch (err) {
-        console.error('Erreur lors de l\'envoi du message:', err);
+    if(msg) {
+        // Store msg
+        await addMsg(msg);
+    }
+
+    if (sendTgAlert) {
+        if (await sendTgMessage(API_TOKEN_SD, TELEGRAM_GOVERNANCE_ID, text)) {
+            console.log('Message envoyé avec succès:');
+        } else {
+            console.error('Erreur lors de l\'envoi du message:');
+        }
     }
 
     await sleep(1000)
+}
+
+const addMsg = async (msg: IMessage) => {
+    const storedMessages = await readStoredMessages();
+    storedMessages.messages.push(msg);
+    fs.writeFileSync(MESSAGES_PATH_FILE, JSON.stringify(storedMessages), { encoding: 'utf-8' });
+}
+
+const readStoredMessages = async (): Promise<IStoredMessages> => {
+    let storedMessages: IStoredMessages = {
+        lastSend:  moment().unix(),
+        messages: []
+    };
+
+    if (fs.existsSync(MESSAGES_PATH_FILE)) {
+        storedMessages = JSON.parse(fs.readFileSync(MESSAGES_PATH_FILE, { encoding: 'utf-8' }));
+    }
+
+    return storedMessages;
+}
+
+const sendStoredMessages = async () => {
+    const storedMessages = await readStoredMessages();
+    const lastDayOfYear = moment.unix(storedMessages.lastSend).dayOfYear();
+
+    const currentUnix = moment().unix();
+    const currentDayOfYear = moment.unix(currentUnix).dayOfYear();
+    if(currentDayOfYear <= lastDayOfYear) {
+        return;
+    }
+
+    const currentCET = momentTimezone.unix(currentUnix).tz('CET');
+    const nineAmCET = currentCET.clone().hour(9).minute(0).second(0).millisecond(0);
+    if (currentCET.isAfter(nineAmCET)) {
+        console.log('Le timestamp est supérieur à 9h AM CET.');
+    }
 }
 
 interface ProposalFetched {
@@ -859,6 +940,9 @@ const main = async () => {
 
     fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), {encoding: 'utf-8'});
     fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), {encoding: 'utf-8'});
+
+    // Check if we have to send our stored messages
+    await sendStoredMessages();
 };
 
 main().catch((error) => {

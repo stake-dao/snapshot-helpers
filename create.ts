@@ -8,7 +8,7 @@ import * as chains from 'viem/chains'
 import { createPublicClient, http, parseAbi } from "viem";
 import * as lodhash from 'lodash';
 import { sleep } from "./utils/sleep";
-import { sendMessage } from "./utils/telegram";
+import { sendTgErrorMessage } from "./utils/telegram";
 import { CHAIN_ID_TO_RPC } from "./utils/constants";
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
@@ -581,7 +581,7 @@ const voteCRV = async (gauges: string[], proposalId: string, pkStr: string, targ
   }
   catch (e) {
     console.log(e);
-    await sendMessage(`Create weekly proposal`, `Can't vote for CRV proposal - ${e.error_description || e.message || ""}`);
+    await sendTgErrorMessage(`Create weekly proposal`, `Can't vote for CRV proposal - ${e.error_description || e.message || ""}`);
   }
 };
 
@@ -643,7 +643,7 @@ const voteCake = async (gauges: string[], proposalId: string, pkStr: string) => 
   }
   catch (e) {
     console.log(e);
-    await sendMessage(`Create weekly proposal`, `Can't vote for CAKE proposal - ${e.error_description || e.message || ""}`);
+    await sendTgErrorMessage(`Create weekly proposal`, `Can't vote for CAKE proposal - ${e.error_description || e.message || ""}`);
   }
 };
 
@@ -819,7 +819,7 @@ const main = async () => {
     }
     catch (e) {
       console.error(e);
-      await sendMessage("Create gauge proposals", `Space ${space} - ${e.error_description || e.message || ""}`);
+      await sendTgErrorMessage("Create gauge proposals", `Space ${space} - ${e.error_description || e.message || ""}`);
     }
   }
 }
