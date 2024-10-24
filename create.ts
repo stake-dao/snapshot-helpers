@@ -3,6 +3,7 @@ import { BytesLike, ethers } from "ethers";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { request, gql } from 'graphql-request'
 import moment from "moment";
+import * as momentTimezone from "moment-timezone";
 import axios from "axios";
 import * as chains from 'viem/chains'
 import { createPublicClient, http, parseAbi } from "viem";
@@ -693,11 +694,12 @@ const main = async () => {
 
   const now = moment().unix();
 
-  const blockTimestamp = moment().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0).utc(false).unix()
-  const startProposal = blockTimestamp - 3600;
+  const blockTimestamp = moment().utc().add(-2, "week").set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
+  const startTimestamp = blockTimestamp.unix();
+  const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(5, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
 
   for (const space of SPACES) {
-    const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], blockTimestamp - (2 * 3600));
+    const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], startTimestamp);
 
     const lastGaugeProposal = await getLastGaugeProposal(space);
 
@@ -792,8 +794,8 @@ const main = async () => {
         body: "Gauge vote for " + label + " inflation allocation.",
         discussion: "https://votemarket.stakedao.org/votes",
         choices: gauges,
-        start: startProposal,
-        end: startProposal + (5 * 86400) + (86400 / 2) + 3600, // 5.5 + 1h days after
+        start: startTimestamp,
+        end: endTimestamp,
         snapshot: snapshotBlock,
         plugins: JSON.stringify({}),
         metadata: {
