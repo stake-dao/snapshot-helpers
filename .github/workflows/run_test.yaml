@@ -1,0 +1,30 @@
+name: "Create weekly gauge proposals"
+
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 4'
+
+env:
+  HUB: ${{ secrets.HUB }}
+  PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+  VOTE_PRIVATE_KEY: ${{ secrets.VOTE_PRIVATE_KEY }}
+  ARBITRUM_VOTE_PRIVATE_KEY: ${{ secrets.ARBITRUM_VOTE_PRIVATE_KEY }}
+  POLYGON_VOTE_PRIVATE_KEY: ${{ secrets.POLYGON_VOTE_PRIVATE_KEY }}
+  BSCSCAN_API_KEY: ${{ secrets.BSCSCAN_API_KEY }}
+  ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+  ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
+  WEB3_ALCHEMY_API_KEY: ${{ secrets.WEB3_ALCHEMY_API_KEY }}
+  TG_API_KEY_BOT_ERROR: ${{ secrets.TG_API_KEY_BOT_ERROR }}
+
+jobs:
+  build: # make sure build/ci work properly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: 'feature/eng-718-stake-dao-curve-governance-process-update'
+      - run: |
+          npm install
+      - run: |
+          npm run replication
