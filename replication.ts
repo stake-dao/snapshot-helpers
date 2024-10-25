@@ -27,8 +27,8 @@ const DELAY_ONE_DAY = 1 * 24 * ONE_HOUR
 
 const API_TOKEN_SD = process.env.TG_API_KEY;
 const TELEGRAM_API = "https://api.telegram.org/bot" + API_TOKEN_SD + "/sendMessage"
-const TELEGRAM_CHANNEL_ID = "@MetaGovernanceSD"
-const TELEGRAM_GOVERNANCE_ID = "-1002204618754"
+const TELEGRAM_CHANNEL_ID = "@StakeDaoTestBots"
+const TELEGRAM_GOVERNANCE_ID = "@StakeDaoTestBots"
 const CURVE_VOTER = "0x20b22019406Cf990F0569a6161cf30B8e6651dDa"
 
 // Files
@@ -118,6 +118,7 @@ interface IMessage {
     voteId: number;
     votingAddress: string;
     deadline: number;
+    type: 'curve' | 'angle';
 }
 
 interface IStoredMessages {
@@ -702,7 +703,8 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                             voter: CURVE_VOTER,
                             votes: votes.join(","),
                             votingAddress,
-                            deadline
+                            deadline,
+                            type: 'curve',
                         };
                     }
                 }
@@ -758,7 +760,8 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                                 voter: ANGLE_VOTER,
                                 votes: votes.join(","),
                                 votingAddress: "",
-                                deadline
+                                deadline,
+                                type: 'angle'
                             };
                         }
                     }
@@ -808,9 +811,9 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 
     if (sendTgAlert) {
         if (await sendTgMessage(API_TOKEN_SD, TELEGRAM_GOVERNANCE_ID, text)) {
-            console.log('Message envoyé avec succès:');
+            console.log('Message envoyé avec succès');
         } else {
-            console.error('Erreur lors de l\'envoi du message:');
+            console.error('Erreur lors de l\'envoi du message');
         }
     }
 
@@ -825,7 +828,7 @@ const addMsg = async (msg: IMessage) => {
 
 const readStoredMessages = async (): Promise<IStoredMessages> => {
     let storedMessages: IStoredMessages = {
-        lastSend:  moment().unix(),
+        lastSend:  moment().tz('Europe/Paris').startOf("day").unix(),
         messages: []
     };
 
@@ -838,19 +841,49 @@ const readStoredMessages = async (): Promise<IStoredMessages> => {
 
 const sendStoredMessages = async () => {
     const storedMessages = await readStoredMessages();
-    const lastDayOfYear = moment.unix(storedMessages.lastSend).dayOfYear();
+    const lastSend = momentTimezone.unix(storedMessages.lastSend).tz('Europe/Paris');
+    
+    const newSend = lastSend.clone().tz('Europe/Paris').add(1, 'days').set("hour", 9).set("minute", 0).set("second", 0);
 
-    const currentUnix = moment().unix();
-    const currentDayOfYear = moment.unix(currentUnix).dayOfYear();
-    if(currentDayOfYear <= lastDayOfYear) {
+    const currentUnix = moment().tz('Europe/Paris').unix();
+    if(newSend.unix() > currentUnix) {
         return;
     }
 
-    const currentCET = momentTimezone.unix(currentUnix).tz('CET');
-    const nineAmCET = currentCET.clone().hour(9).minute(0).second(0).millisecond(0);
-    if (currentCET.isAfter(nineAmCET)) {
-        console.log('Le timestamp est supérieur à 9h AM CET.');
+    if (storedMessages.messages.length > 0) {
+        // Send messages
+        let text = "";
+        for (const message of storedMessages.messages) {
+            text += message.text;
+
+            switch (message.type) {
+                case 'curve':
+                    text += "Vote id : " + message.voteId + "\n"
+                    text += "Voter : " + message.voter + "\n"
+                    text += "Voting address : " + message.votingAddress + "\n"
+                    break;
+                case 'angle':
+                    text += "Angle voter V5 : " + message.voter + "\n"
+                    break;
+                default:
+                    break;
+            }
+
+            text += "Payload : " + message.payload + "\n"
+            text += "Vote : (" + message.votes + ")\n"
+            text += "Deadline : " + moment.unix(message.deadline).format("LLL") + " @chago0x @hubirb\n"
+            text += "\n"
+        }
+
+        if (await sendTgMessage(API_TOKEN_SD, TELEGRAM_GOVERNANCE_ID, text)) {
+            console.log('Message envoyé avec succès');
+        } else {
+            console.error('Erreur lors de l\'envoi du message');
+        }
     }
+
+    storedMessages.lastSend = newSend.unix();
+    fs.writeFileSync(MESSAGES_PATH_FILE, JSON.stringify(storedMessages), { encoding: 'utf-8' });
 }
 
 interface ProposalFetched {
