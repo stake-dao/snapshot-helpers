@@ -1,4 +1,4 @@
-name: "Create weekly gauge proposals"
+name: "Test - Create weekly gauge proposals"
 
 on: 
   workflow_dispatch:
@@ -28,3 +28,4 @@ jobs:
           npm install
       - run: |
           npm run replication
+      - uses: stefanzweifel/git-auto-commit-action@v5
