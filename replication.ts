@@ -892,6 +892,7 @@ interface ProposalFetched {
 }
 
 const main = async () => {
+    await sendTgMessage(API_TOKEN_SD, TELEGRAM_GOVERNANCE_ID, "Test");
 
     const proposalsFetched: ProposalFetched[][] = JSON.parse(fs.readFileSync("./data/replication_proposals.json", { encoding: 'utf-8' }));
     const timePerSpaces: Record<string, number> = JSON.parse(fs.readFileSync("./data/replication.json", { encoding: 'utf-8' }));
