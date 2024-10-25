@@ -16,6 +16,7 @@ env:
   ARBISCAN_API_KEY: ${{ secrets.ARBISCAN_API_KEY }}
   WEB3_ALCHEMY_API_KEY: ${{ secrets.WEB3_ALCHEMY_API_KEY }}
   TG_API_KEY_BOT_ERROR: ${{ secrets.TG_API_KEY_BOT_ERROR }}
+  TG_API_KEY: ${{ secrets.TG_API_KEY }}
 
 jobs:
   build: # make sure build/ci work properly
