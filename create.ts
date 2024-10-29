@@ -362,6 +362,7 @@ const getLastGaugeProposal = async (space: string) => {
         orderBy: "created"
         orderDirection: desc
       ) {
+        id
 			  title
 			  created
       }
@@ -707,7 +708,11 @@ const main = async () => {
     // Because all our gauge votes are bi-monthly
     // Except for pendle, every week
     const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
-    const diff = isPendle ? 6 : 10;
+    let diff = isPendle ? 6 : 10;
+    if(lastGaugeProposal.id.toLowerCase() === "0x0ce9dc1a8fe1b87f65b4463dab34a7a70516cb6026c5c3f023d7c213c2abd7c2") {
+      // Diff 0 for this pendle proposal to be able to create the next one
+      diff = 0;
+    }
 
     if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
