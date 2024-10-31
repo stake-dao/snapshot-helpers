@@ -595,7 +595,7 @@ const voteCake = async (gauges: string[], proposalId: string, pkStr: string) => 
       weight: 90,
     },
     {
-      gauge: "0x52b59E3eAdc7C4ce8d3533020ca0Cd770E4eAbC3", // defiedge sdt-bnb
+      gauge: "0xa0bec9b22a22caD9D9813Ad861E331210FE6C589", // defiedge sdt-bnb
       weight: 10,
     }
   ];
@@ -827,8 +827,8 @@ const main = async () => {
 }
 
 const votes = async () => {
-  const crvId = "0x21f3459d819727a34cb01654745cd5cd6c8a23dee31f718e40ae1cae56b2f1a3";
-  const cakeId = "";
+  const crvId = "";
+  const cakeId = "0x5413503304dfb7064e2ebf9bbc7be7f530c0ae9cf2f598895e3545753b8d8877";
 
   if (crvId.length > 0) {
     const crvGauges = await getCurveGauges();
