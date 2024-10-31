@@ -695,7 +695,7 @@ const main = async () => {
 
   const now = moment().unix();
 
-  const blockTimestamp = moment().utc().add(-2, "week").set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
+  const blockTimestamp = moment().utc().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
   const startTimestamp = blockTimestamp.unix();
   const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(5, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
 
@@ -708,12 +708,7 @@ const main = async () => {
     // Because all our gauge votes are bi-monthly
     // Except for pendle, every week
     const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
-    let diff = isPendle ? 6 : 10;
-    if(lastGaugeProposal.id.toLowerCase() === "0x0ce9dc1a8fe1b87f65b4463dab34a7a70516cb6026c5c3f023d7c213c2abd7c2") {
-      // Diff 0 for this pendle proposal to be able to create the next one
-      diff = 0;
-    }
-
+    const diff = isPendle ? 6 : 10;
     if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
       continue;
     }
