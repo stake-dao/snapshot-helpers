@@ -562,21 +562,12 @@ const replicateVote = async (space: string, proposalSD: Proposal, originalPropos
     }
 }
 
-const isOnchainVote = async (proposal: Proposal, space: string): Promise<boolean> => {
-    const originSpace = originSpaces[space];
-    if(originSpace == "curve.eth") {
-        return true;
-    }
-
-    const originalProposal = await getOriginalProposal(proposal, space)
-    return originalProposal === undefined
-}
-
 interface IProposalMessageForOperationChannel {
     text: string;
     deadline: number;
     payload: `0x${string}` | undefined;
     voter: string | undefined;
+    isOnchainProposal: boolean;
 }
 
 const getProposalMessageForOperationChannel = async (proposal: Proposal, token: string, space: string): Promise<IProposalMessageForOperationChannel | undefined> => {
@@ -620,8 +611,14 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
 	if (total === 0) {
 		// Nothing to replicate
 		text += "✅ Nothing to replicate"
+
+        // Tag as false even if true to avoid to compute the payload ...
+        isOnchainProposal = false;
 	} else if (proposal.quorum > total) {
 		text += "❌ Not replication because of no quorum\n"
+
+        // Tag as false even if true to avoid to compute the payload ...
+        isOnchainProposal = false;
     } else {
         const votes: string[] = [];
         let yea = 0;
@@ -785,11 +782,23 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
         text,
         deadline,
         payload,
-        voter
+        voter,
+        isOnchainProposal
     };
 }
 
-const formatMessage = (proposalMessages: IProposalMessageForOperationChannel[]): string => {
+
+const formatSnapshotMessage = (proposalMessage: IProposalMessageForOperationChannel): string => {
+    const lines = proposalMessage.text.split("\n");
+    const voteReplicated = lines.pop()
+    
+    lines.push(`Deadline : ${moment.unix(proposalMessage.deadline).format("LLL")} @chago0x @hubirb`);
+    lines.push(voteReplicated);
+    
+    return lines.join("\n");
+}
+
+const formatOnChainMessage = (proposalMessages: IProposalMessageForOperationChannel[]): string => {
     const haveDifferentVoter = Object.keys(proposalMessages.reduce((acc: any, p) => {
         acc[p.voter.toLowerCase()] = true;
         return acc;
@@ -802,14 +811,14 @@ const formatMessage = (proposalMessages: IProposalMessageForOperationChannel[]):
     
     for (const proposalMessage of proposalMessages) {
 
-        if (proposalMessage.deadline < minDeadline) {
+        if (minDeadline < proposalMessage.deadline) {
             minDeadline = proposalMessage.deadline;
         }
 
         messages.push(proposalMessage.text)
 
         if(proposalMessage.payload) {
-            payloads.push();
+            payloads.push(proposalMessage.payload);
         }
         if(proposalMessage.voter) {
             voters.push(proposalMessage.voter);
@@ -822,21 +831,26 @@ const formatMessage = (proposalMessages: IProposalMessageForOperationChannel[]):
         message += "\n";
     }
 
-    if (!haveDifferentVoter) {
+    if (!haveDifferentVoter && voters.length > 0) {
         message += `Voter : ${voters[0]} \n`;
     }
 
     for (let i = 0; i < payloads.length; i++) {
         if (haveDifferentVoter) {
-            message += `Payload ${i} : \n`;
-            message += `Voter : ${voters[i]} \n`;
-            message += `${payloads[i]}\n`;
-        } else {
-            message += `Payload ${i} : ` + payloads[i] + "\n";
+            message += `Payload ${i+1} : \n`;
+            if (voters.length > i) {
+                message += `Voter : ${voters[i]} \n`;
+            }
+            if (payloads.length > i) {
+                message += `${payloads[i]}\n`;
+            }
+
+        } else if (payloads.length > i) {
+            message += `Payload ${i+1} : ${payloads[i]}\n`;
         }
     }
 
-    message += "Deadline : " + moment.unix(minDeadline).format("LLL") + " @chago0x @hubirb\n"
+    message += `\nDeadline : ${moment.unix(minDeadline).format("LLL")} @chago0x @hubirb\n`
     return message;
 }
 
@@ -933,25 +947,27 @@ const main = async () => {
             if (proposalsFetched[2].find((p) => p.id.toLowerCase() === proposal.id.toLowerCase())) {
                 continue;
             }
+
             await sendTextToTelegramChat(proposal, spaces[space], false, false, true);
 
-            if (await isOnchainVote(proposal, space)) {
-                // Add the proposal closed
-                let spaceProposalClosed = proposalsClosedData.spaces.find((p) => p.space === space);
-                if (!spaceProposalClosed) {
-                    spaceProposalClosed = {
-                        space,
-                        proposalIds: [proposal]
-                    };
-                    proposalsClosedData.spaces.push(spaceProposalClosed)
+            const message = await getProposalMessageForOperationChannel(proposal, spaces[space], space);
+            if (message) {
+                if (message.isOnchainProposal) {
+                    // Add the proposal closed
+                    let spaceProposalClosed = proposalsClosedData.spaces.find((p) => p.space === space);
+                    if (!spaceProposalClosed) {
+                        spaceProposalClosed = {
+                            space,
+                            proposalIds: [proposal]
+                        };
+                        proposalsClosedData.spaces.push(spaceProposalClosed)
+                    } else {
+                        spaceProposalClosed.proposalIds.push(proposal);
+                    }
                 } else {
-                    spaceProposalClosed.proposalIds.push(proposal);
+                    await sendTelegramMsgInSDGovChannel(formatSnapshotMessage(message));
                 }
-            } else {
-                const message = await getProposalMessageForOperationChannel(proposal, spaces[space], space);
-                await sendTelegramMsgInSDGovChannel(formatMessage([message]));
             }
-
 
             proposalsFetched[2].push({
                 id: proposal.id,
@@ -976,7 +992,9 @@ const main = async () => {
             }
         }
 
-        await sendTelegramMsgInSDGovChannel(formatMessage(messages));
+        if (messages.length > 0) {
+            await sendTelegramMsgInSDGovChannel(formatOnChainMessage(messages));
+        }
 
         // Reset
         proposalsClosedData.spaces = [];
