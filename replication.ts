@@ -15,6 +15,7 @@ import AngleGovernorABI from './abis/AngleGovernor.json';
 import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseUnits } from "viem";
 import * as chains from 'viem/chains'
 import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
+import * as momentTimezone from "moment-timezone";
 
 dotenv.config();
 
@@ -561,10 +562,18 @@ const replicateVote = async (space: string, proposalSD: Proposal, originalPropos
     }
 }
 
-const sendToOperationsChannel = async (proposal: Proposal, token: string, space: string) => {
+interface IProposalMessageForOperationChannel {
+    text: string;
+    deadline: number;
+    payload: `0x${string}` | undefined;
+    voter: string | undefined;
+    isOnchainProposal: boolean;
+}
+
+const getProposalMessageForOperationChannel = async (proposal: Proposal, token: string, space: string): Promise<IProposalMessageForOperationChannel | undefined> => {
     // Skip if proposal is our gauge vote and if it's not YFI (beacause YFI is 100% on snapshot)
     if(space !== "sdyfi.eth" && proposal.title.indexOf("Gauge vote") > -1) {
-        return;
+        return undefined;
     }
 
     const originSpace = originSpaces[space];
@@ -596,11 +605,20 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 
     // Compute results
 	const total = proposal.scores.reduce((acc:number, score:number) => acc + score, 0);
+    let payload: `0x${string}` | undefined = undefined;
+    let voter: string | undefined = undefined;
+
 	if (total === 0) {
 		// Nothing to replicate
 		text += "✅ Nothing to replicate"
+
+        // Tag as false even if true to avoid to compute the payload ...
+        isOnchainProposal = false;
 	} else if (proposal.quorum > total) {
 		text += "❌ Not replication because of no quorum\n"
+
+        // Tag as false even if true to avoid to compute the payload ...
+        isOnchainProposal = false;
     } else {
         const votes: string[] = [];
         let yea = 0;
@@ -628,6 +646,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
         }
 
         let replicateDone = false;
+
         if (isCurveProposal) {
             const links = linkify.find(proposal.body);
             if (links.length > 0) {
@@ -657,19 +676,21 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
                         text += "❌ Error when fetch PCT_BASE\n"
                     } else {
                         text += "Vote id : " + voteId + "\n"
-                        text += "Voter : " + CURVE_VOTER + "\n"
-                        text += "Voting address : " + votingAddress + "\n"
+                        //text += "Voter : " + CURVE_VOTER + "\n"
+                        //text += "Voting address : " + votingAddress + "\n"
 
                         const yeaBN = Math.floor(yea / totalVotes * pctBase);
                         const nayBN = pctBase - yeaBN;
 
-                        const payload = encodeFunctionData({
+                        payload = encodeFunctionData({
                             abi: CurveVoterABI,
                             functionName: 'votePct',
                             args: [BigInt(voteId), BigInt(yeaBN), BigInt(nayBN), votingAddress]
                         });
 
-                        text += "Payload : " + payload + "\n"
+                        voter = CURVE_VOTER;
+
+                        //text += "Payload : " + payload + "\n"
                         text += "Vote : (" + votes.join(",") + ")\n"
                     }
                 }
@@ -707,14 +728,16 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 
                             const id = hexToBigInt(angleProposal.id as `0x${string}`, { size: 32 })
 
-                            const payload = encodeFunctionData({
+                            payload = encodeFunctionData({
                                 abi: AngleGovernorABI,
                                 functionName: 'castVoteWithReasonAndParams',
                                 args: [id, BigInt(0), "",  against, forr, abstain]
                             });
+
+                            voter = ANGLE_VOTER;
     
-                            text += "Angle voter V5 : " + ANGLE_VOTER + "\n"
-							text += "Payload : " + payload + "\n"
+                            //text += "Angle voter V5 : " + ANGLE_VOTER + "\n"
+							//text += "Payload : " + payload + "\n"
                             text += "Vote : (" + votes.join(",") + ")\n"
                         }
                     }
@@ -744,7 +767,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 			}
         }
 
-		text += "Deadline : " + moment.unix(deadline).format("LLL") + " @chago0x @hubirb\n"
+		//text += "Deadline : " + moment.unix(deadline).format("LLL") + " @chago0x @hubirb\n"
 
 		if (!isOnchainProposal) {
 			if (replicateDone) {
@@ -755,11 +778,88 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
 		}
     }
 
+    return {
+        text,
+        deadline,
+        payload,
+        voter,
+        isOnchainProposal
+    };
+}
+
+
+const formatSnapshotMessage = (proposalMessage: IProposalMessageForOperationChannel): string => {
+    const lines = proposalMessage.text.split("\n");
+    const voteReplicated = lines.pop()
+    
+    lines.push(`Deadline : ${moment.unix(proposalMessage.deadline).format("LLL")} @chago0x @hubirb`);
+    lines.push(voteReplicated);
+    
+    return lines.join("\n");
+}
+
+const formatOnChainMessage = (proposalMessages: IProposalMessageForOperationChannel[]): string => {
+    const haveDifferentVoter = Object.keys(proposalMessages.reduce((acc: any, p) => {
+        acc[p.voter.toLowerCase()] = true;
+        return acc;
+    }, {})).length > 1;
+
+    const messages: string[] = [];
+    const payloads: `0x${string}`[] = [];
+    const voters: string[] = [];
+    let minDeadline = 0;
+    
+    for (const proposalMessage of proposalMessages) {
+
+        if (minDeadline < proposalMessage.deadline) {
+            minDeadline = proposalMessage.deadline;
+        }
+
+        messages.push(proposalMessage.text)
+
+        if(proposalMessage.payload) {
+            payloads.push(proposalMessage.payload);
+        }
+        if(proposalMessage.voter) {
+            voters.push(proposalMessage.voter);
+        }
+    }
+
+    let message = messages.join("\n");
+
+    if (payloads.length > 0) {
+        message += "\n";
+    }
+
+    if (!haveDifferentVoter && voters.length > 0) {
+        message += `Voter : ${voters[0]} \n`;
+    }
+
+    for (let i = 0; i < payloads.length; i++) {
+        if (haveDifferentVoter) {
+            message += `Payload ${i+1} : \n`;
+            if (voters.length > i) {
+                message += `Voter : ${voters[i]} \n`;
+            }
+            if (payloads.length > i) {
+                message += `${payloads[i]}\n`;
+            }
+
+        } else if (payloads.length > i) {
+            message += `Payload ${i+1} : ${payloads[i]}\n`;
+        }
+    }
+
+    message += `\nDeadline : ${moment.unix(minDeadline).format("LLL")} @chago0x @hubirb\n`
+    return message;
+}
+
+const sendTelegramMsgInSDGovChannel = async (message: string) => {
     try {
         const response = await axios.post(TELEGRAM_API, null, {
             params: {
                 chat_id: TELEGRAM_GOVERNANCE_ID,
-                text: text,
+                text: message,
                 parse_mode: 'html',
                 disable_web_page_preview: 'true',
             },
@@ -769,7 +869,7 @@ const sendToOperationsChannel = async (proposal: Proposal, token: string, space:
         console.error('Erreur lors de l\'envoi du message:', err);
     }
 
-    await sleep(1000)
+    await sleep(1000);
 }
 
 interface ProposalFetched {
@@ -777,8 +877,19 @@ interface ProposalFetched {
     ts: number;
 }
 
+interface ProposalClosedData {
+    lastTimestampMessageSent: number;
+    spaces: ProposalClosed[];
+}
+
+interface ProposalClosed {
+    space: string;
+    proposalIds: Proposal[];
+}
+
 const main = async () => {
 
+    const proposalsClosedData: ProposalClosedData = JSON.parse(fs.readFileSync("./data/proposals_closed.json", { encoding: 'utf-8' }));
     const proposalsFetched: ProposalFetched[][] = JSON.parse(fs.readFileSync("./data/replication_proposals.json", { encoding: 'utf-8' }));
     const timePerSpaces: Record<string, number> = JSON.parse(fs.readFileSync("./data/replication.json", { encoding: 'utf-8' }));
     const now = moment().unix();
@@ -836,13 +947,58 @@ const main = async () => {
             if (proposalsFetched[2].find((p) => p.id.toLowerCase() === proposal.id.toLowerCase())) {
                 continue;
             }
+
             await sendTextToTelegramChat(proposal, spaces[space], false, false, true);
-            await sendToOperationsChannel(proposal, spaces[space], space);
+
+            const message = await getProposalMessageForOperationChannel(proposal, spaces[space], space);
+            if (message) {
+                if (message.isOnchainProposal) {
+                    // Add the proposal closed
+                    let spaceProposalClosed = proposalsClosedData.spaces.find((p) => p.space === space);
+                    if (!spaceProposalClosed) {
+                        spaceProposalClosed = {
+                            space,
+                            proposalIds: [proposal]
+                        };
+                        proposalsClosedData.spaces.push(spaceProposalClosed)
+                    } else {
+                        spaceProposalClosed.proposalIds.push(proposal);
+                    }
+                } else {
+                    await sendTelegramMsgInSDGovChannel(formatSnapshotMessage(message));
+                }
+            }
+
             proposalsFetched[2].push({
                 id: proposal.id,
                 ts: now,
             });
         }
+    }
+
+    // Only for onchain vote
+    const min = momentTimezone.unix(now).tz('Europe/Paris').set('hours', 9).set('minute', 50).set('second', 0).set('millisecond', 0);
+    const nowTimezone = momentTimezone.unix(now).tz('Europe/Paris');
+    const diffDay = nowTimezone.diff(momentTimezone.unix(proposalsClosedData.lastTimestampMessageSent).tz('Europe/Paris').startOf("day"), "day");
+    if (nowTimezone.isAfter(min) && diffDay > 0) {
+
+        const messages: IProposalMessageForOperationChannel[] = [];
+        for (const space of proposalsClosedData.spaces) {
+            for (const proposal of space.proposalIds) {
+                const message = await getProposalMessageForOperationChannel(proposal, spaces[space.space], space.space);
+                if (message) {
+                    messages.push(message);
+                }
+            }
+        }
+
+        if (messages.length > 0) {
+            await sendTelegramMsgInSDGovChannel(formatOnChainMessage(messages));
+        }
+
+        // Reset
+        proposalsClosedData.spaces = [];
+        proposalsClosedData.lastTimestampMessageSent = min.unix();
     }
 
     // Change timestamp for the next run
@@ -859,6 +1015,7 @@ const main = async () => {
 
     fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), {encoding: 'utf-8'});
     fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), {encoding: 'utf-8'});
+    fs.writeFileSync("./data/proposals_closed.json", JSON.stringify(proposalsClosedData), {encoding: 'utf-8'});
 };
 
 main().catch((error) => {
