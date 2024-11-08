@@ -779,7 +779,7 @@ const main = async () => {
 
   const blockTimestamp = moment().utc().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
   const startTimestamp = blockTimestamp.unix();
-  const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(4, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
+  const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(5, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
 
   for (const space of SPACES) {
     const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], startTimestamp);
