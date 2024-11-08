@@ -6,11 +6,32 @@ import moment from "moment";
 import * as momentTimezone from "moment-timezone";
 import axios from "axios";
 import * as chains from 'viem/chains'
-import { createPublicClient, http, parseAbi } from "viem";
+import { createPublicClient, formatUnits, http, parseAbi } from "viem";
 import * as lodhash from 'lodash';
 import { sleep } from "./utils/sleep";
 import { sendMessage } from "./utils/telegram";
 import { CHAIN_ID_TO_RPC } from "./utils/constants";
+
+const etherscans = [
+  {
+    chain: chains.bsc,
+    apiKey: process.env.BSCSCAN_API_KEY,
+    url: 'api.bscscan.com',
+    blockPerSec: 3
+  },
+  {
+    chain: chains.mainnet,
+    apiKey: process.env.ETHERSCAN_API_KEY,
+    url: 'api.etherscan.io',
+    blockPerSec: 12
+  },
+  {
+    chain: chains.arbitrum,
+    apiKey: process.env.ARBISCAN_API_KEY,
+    url: 'api.arbiscan.io',
+    blockPerSec: 0.25
+  }
+];
 
 const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
 const NETWORK_BY_SPACE = {
@@ -43,7 +64,7 @@ const getBlockByTimestamp = async (network: string, timestamp: number): Promise<
   return data.data.height;
 }
 
-const getCurveGauges = async (): Promise<string[]> => {
+const getCurveGauges = async (snapshotBlock: number): Promise<string[]> => {
   const data = await axios.get("https://api.curve.fi/api/getAllGauges");
   const gaugesMap = data.data.data;
 
@@ -54,10 +75,12 @@ const getCurveGauges = async (): Promise<string[]> => {
 
   const gcAbi = parseAbi([
     'function gauge_types(address gauge) external view returns(int128)',
+    'function get_gauge_weight(address gauge) external view returns(uint256)',
   ]);
 
   const gaugesKeys = Object.keys(gaugesMap);
   const calls: any[] = [];
+  const callsHistoricalWeights: any[] = [];
   for (const key of gaugesKeys) {
     if (gaugesMap[key].is_killed) {
       continue;
@@ -69,14 +92,42 @@ const getCurveGauges = async (): Promise<string[]> => {
       functionName: 'gauge_types',
       args: [gaugesMap[key].gauge]
     });
+    calls.push({
+      address: CURVE_GC,
+      abi: gcAbi,
+      functionName: 'get_gauge_weight',
+      args: [gaugesMap[key].gauge]
+    });
+    callsHistoricalWeights.push({
+      address: CURVE_GC,
+      abi: gcAbi,
+      functionName: 'get_gauge_weight',
+      args: [gaugesMap[key].gauge]
+    });
   }
 
   let results: any[] = [];
-  const chunks = lodhash.chunk(calls, 50);
+  let chunks = lodhash.chunk(calls, 50);
   for (const c of chunks) {
     // @ts-ignore
     const res = await (publicClient.multicall({contracts: c as any}) as any);
     results = results.concat(res);
+  }
+
+  let resultsHistoricalWeights: any[][] = [];
+  chunks = lodhash.chunk(callsHistoricalWeights, 50);
+
+  const nbCheck = 10;
+  const lastBlock = snapshotBlock - (2*365*7200);
+  const pas = (snapshotBlock - lastBlock) / nbCheck;
+  for(let i = 0; i < nbCheck; i++) {
+    const _blockNumber = lastBlock + (i*pas);
+    resultsHistoricalWeights[i] = [];
+    for (const c of chunks) {
+      // @ts-ignore
+      const res = await (publicClient.multicall({contracts: c as any, blockNumber: _blockNumber}) as any);
+      resultsHistoricalWeights[i] = resultsHistoricalWeights[i].concat(res);
+    }
   }
 
   const response: string[] = [];
@@ -86,8 +137,60 @@ const getCurveGauges = async (): Promise<string[]> => {
     }
 
     const gaugeAdded = results.shift()?.error === undefined;
+    const gaugeWeight = results.shift();
+
+    let nbHistoricalWeightsToZero = 0;
+    for (let i = 0; i < nbCheck; i++) {
+      const gaugeHistoricalWeight = resultsHistoricalWeights[i].shift();
+      if (gaugeHistoricalWeight.status === 'success') {
+        const hgw = parseFloat(formatUnits(gaugeHistoricalWeight?.result, 18));
+        if (hgw === 0) {
+          nbHistoricalWeightsToZero++;
+        }
+      }
+    }
+
     if (!gaugeAdded) {
       continue;
+    }
+
+    if(gaugeWeight.status === 'success') {
+      const gw = parseFloat(formatUnits(gaugeWeight?.result, 18));
+      if(gw === 0) {
+        // Check age
+        try {
+          const etherscan = etherscans.find((etherscan) => etherscan.chain === chains.mainnet);
+          if (etherscan) {
+            const { data: resp } = await axios.get(`https://${etherscan.url}/api?module=contract&action=getcontractcreation&contractaddresses=${gaugesMap[key].gauge}&apikey=${etherscan.apiKey}`)
+            // Rate limite
+            await sleep(200)
+            if (resp.result?.length > 0) {
+              const txHash = resp.result[0].txHash;
+              const transaction = await publicClient.getTransactionReceipt({ hash: txHash });
+              if (transaction) {
+                // On BSC chain, 1 block every 3 seconds
+                const diffBlocks = snapshotBlock - Number(transaction.blockNumber)
+                const now = moment().unix();
+                const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
+                const isOldTwoYears = (now - createdTimestamp) >= ((2 * 365) * 86400)
+                if (isOldTwoYears) {
+                  console.log("gauge ", gaugesMap[key].gauge, " is 2 years old");
+                  // Check if previous weights are equals to 0 too
+                  if (nbHistoricalWeightsToZero === nbCheck) {
+                    // All weights are 0
+                    console.log("skip curve gauge", key);
+                    continue;
+                  }
+                }
+              }
+            }
+          }
+
+        }
+        catch (e) {
+  
+        }
+      }
     }
 
     const gauge = gaugesMap[key].gauge as string;
@@ -232,27 +335,6 @@ const getPancakeGauges = async (): Promise<string[]> => {
     "0xdb92AD18eD18752a194b9D831413B09976B34AE1",
     "0xBc5Bbf09F1d20724E083E75B92E48073172576f7",
     "0x8b626Acfb32CDad0d2F3b493Eb9928BbA1BbBcCa"
-  ];
-  
-  const etherscans = [
-    {
-      chain: chains.bsc,
-      apiKey: process.env.BSCSCAN_API_KEY,
-      url: 'api.bscscan.com',
-      blockPerSec: 3
-    },
-    {
-      chain: chains.mainnet,
-      apiKey: process.env.ETHERSCAN_API_KEY,
-      url: 'api.etherscan.io',
-      blockPerSec: 12
-    },
-    {
-      chain: chains.arbitrum,
-      apiKey: process.env.ARBISCAN_API_KEY,
-      url: 'api.arbiscan.io',
-      blockPerSec: 0.25
-    }
   ];
 
   // Fetch blocknumbers
@@ -697,7 +779,7 @@ const main = async () => {
 
   const blockTimestamp = moment().utc().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
   const startTimestamp = blockTimestamp.unix();
-  const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(5, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
+  const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(4, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
 
   for (const space of SPACES) {
     const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], startTimestamp);
@@ -718,7 +800,7 @@ const main = async () => {
 
     switch (space) {
       case "sdcrv.eth":
-        gauges = await getCurveGauges();
+        gauges = await getCurveGauges(snapshotBlock);
         break;
       case "sdfxs.eth":
         gauges = await getFraxGauges();
@@ -831,7 +913,8 @@ const votes = async () => {
   const cakeId = "0x5413503304dfb7064e2ebf9bbc7be7f530c0ae9cf2f598895e3545753b8d8877";
 
   if (crvId.length > 0) {
-    const crvGauges = await getCurveGauges();
+    const snapshotBlock = await getBlockByTimestamp("ethereum", moment().unix());
+    const crvGauges = await getCurveGauges(snapshotBlock);
     await voteCRV(crvGauges, crvId as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
     await voteCRV(crvGauges, crvId as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
     await voteCRV(crvGauges, crvId as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
