@@ -11,6 +11,7 @@ import * as lodhash from 'lodash';
 import { sleep } from "./utils/sleep";
 import { sendMessage } from "./utils/telegram";
 import { CHAIN_ID_TO_RPC } from "./utils/constants";
+import { CHAIN_IDS } from "./utils/chainIds";
 
 const etherscans = [
   {
@@ -110,7 +111,7 @@ const getCurveGauges = async (snapshotBlock: number): Promise<string[]> => {
   let chunks = lodhash.chunk(calls, 50);
   for (const c of chunks) {
     // @ts-ignore
-    const res = await (publicClient.multicall({contracts: c as any}) as any);
+    const res = await (publicClient.multicall({ contracts: c as any }) as any);
     results = results.concat(res);
   }
 
@@ -118,14 +119,14 @@ const getCurveGauges = async (snapshotBlock: number): Promise<string[]> => {
   chunks = lodhash.chunk(callsHistoricalWeights, 50);
 
   const nbCheck = 10;
-  const lastBlock = snapshotBlock - (2*365*7200);
+  const lastBlock = snapshotBlock - (2 * 365 * 7200);
   const pas = (snapshotBlock - lastBlock) / nbCheck;
-  for(let i = 0; i < nbCheck; i++) {
-    const _blockNumber = lastBlock + (i*pas);
+  for (let i = 0; i < nbCheck; i++) {
+    const _blockNumber = lastBlock + (i * pas);
     resultsHistoricalWeights[i] = [];
     for (const c of chunks) {
       // @ts-ignore
-      const res = await (publicClient.multicall({contracts: c as any, blockNumber: _blockNumber}) as any);
+      const res = await (publicClient.multicall({ contracts: c as any, blockNumber: _blockNumber }) as any);
       resultsHistoricalWeights[i] = resultsHistoricalWeights[i].concat(res);
     }
   }
@@ -154,9 +155,9 @@ const getCurveGauges = async (snapshotBlock: number): Promise<string[]> => {
       continue;
     }
 
-    if(gaugeWeight.status === 'success') {
+    if (gaugeWeight.status === 'success') {
       const gw = parseFloat(formatUnits(gaugeWeight?.result, 18));
-      if(gw === 0) {
+      if (gw === 0) {
         // Check age
         try {
           const etherscan = etherscans.find((etherscan) => etherscan.chain === chains.mainnet);
@@ -188,7 +189,7 @@ const getCurveGauges = async (snapshotBlock: number): Promise<string[]> => {
 
         }
         catch (e) {
-  
+
         }
       }
     }
@@ -271,12 +272,10 @@ const getFraxGauges = async (): Promise<string[]> => {
 
 const getPendleGauges = async (): Promise<string[]> => {
 
-  const { data: chainIds } = await axios.get("https://raw.githubusercontent.com/DefiLlama/chainlist/main/constants/chainIds.json");
-
   const SIZE = 100;
   const response: string[] = [];
 
-  for (const chainId of Object.keys(chainIds)) {
+  for (const chainId of Object.keys(CHAIN_IDS)) {
     let run = true;
     let skip = 0;
 
@@ -377,7 +376,7 @@ const getPancakeGauges = async (): Promise<string[]> => {
             // On BSC chain, 1 block every 3 seconds
             const diffBlocks = blockNumbers[etherscan.chain.id] - Number(transaction.blockNumber)
             const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
-            const isOldOneYear = (now - createdTimestamp) >= ((30*11) * 86400)
+            const isOldOneYear = (now - createdTimestamp) >= ((30 * 11) * 86400)
             if (isOldOneYear) {
               // Skip
               continue;
@@ -601,7 +600,7 @@ const getSpectraGauges = async (): Promise<string[]> => {
 
     const splits = pool.symbol.split("-");
     const maturity = parseInt(splits.pop());
-    if(maturity < now) {
+    if (maturity < now) {
       continue;
     }
 
@@ -766,145 +765,153 @@ const getMavGauges = async (): Promise<string[]> => {
 };
 
 const main = async () => {
+  try {
 
-  const hub = process.env.HUB;
+    const hub = process.env.HUB;
 
-  const client = new snapshot.Client(hub);
-  const pk: BytesLike = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY : "";
+    const client = new snapshot.Client(hub);
+    const pk: BytesLike = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY : "";
 
-  const signingKey = new ethers.utils.SigningKey(pk);
-  const web3 = new ethers.Wallet(signingKey);
+    const signingKey = new ethers.utils.SigningKey(pk);
+    const web3 = new ethers.Wallet(signingKey);
 
-  const now = moment().unix();
+    const now = moment().unix();
 
-  const blockTimestamp = moment().utc().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
-  const startTimestamp = blockTimestamp.unix();
-  const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(5, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
+    const blockTimestamp = moment().utc().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
+    const startTimestamp = blockTimestamp.unix();
+    const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(5, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
 
-  for (const space of SPACES) {
-    const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], startTimestamp);
+    for (const space of SPACES) {
+      const snapshotBlock = await getBlockByTimestamp(NETWORK_BY_SPACE[space], startTimestamp);
 
-    const lastGaugeProposal = await getLastGaugeProposal(space);
+      const lastGaugeProposal = await getLastGaugeProposal(space);
 
-    // Check if we are at least 10 days after the last proposal
-    // Because all our gauge votes are bi-monthly
-    // Except for pendle, every week
-    const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
-    const diff = isPendle ? 6 : 10;
-    if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
-      continue;
-    }
+      // Check if we are at least 10 days after the last proposal
+      // Because all our gauge votes are bi-monthly
+      // Except for pendle, every week
+      const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
+      const diff = isPendle ? 6 : 10;
+      if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
+        continue;
+      }
 
-    // Fetch gauges corresponding to space
-    let gauges: string[] = [];
+      // Fetch gauges corresponding to space
+      let gauges: string[] = [];
 
-    switch (space) {
-      case "sdcrv.eth":
-        gauges = await getCurveGauges(snapshotBlock);
-        break;
-      case "sdfxs.eth":
-        gauges = await getFraxGauges();
-        break;
-      case "sdangle.eth":
-        gauges = await getAngleGauges();
-        break;
-      case "sdbal.eth":
-        gauges = await getBalGauges();
-        break;
-      case "sdpendle.eth":
-        gauges = await getPendleGauges();
-        break;
-      case "sdcake.eth":
-        gauges = await getPancakeGauges();
-        break;
-      case "sdfxn.eth":
-        gauges = await getFxnGauges();
-        break;
-      case "sdapw.eth":
-        gauges = await getSpectraGauges();
-        break;
-      case "sdmav.eth":
-        gauges = await getMavGauges();
-        break;
-    }
+      switch (space) {
+        case "sdcrv.eth":
+          gauges = await getCurveGauges(snapshotBlock);
+          break;
+        case "sdfxs.eth":
+          gauges = await getFraxGauges();
+          break;
+        case "sdangle.eth":
+          gauges = await getAngleGauges();
+          break;
+        case "sdbal.eth":
+          gauges = await getBalGauges();
+          break;
+        case "sdpendle.eth":
+          gauges = await getPendleGauges();
+          break;
+        case "sdcake.eth":
+          gauges = await getPancakeGauges();
+          break;
+        case "sdfxn.eth":
+          gauges = await getFxnGauges();
+          break;
+        case "sdapw.eth":
+          gauges = await getSpectraGauges();
+          break;
+        case "sdmav.eth":
+          gauges = await getMavGauges();
+          break;
+      }
 
-    if (gauges.length === 0) {
-      continue;
-    }
+      if (gauges.length === 0) {
+        continue;
+      }
 
-    let startProposalDate = moment().add(7, "days");
-    if (space === "sdapw.eth") {
-      startProposalDate = startProposalDate.subtract(1, "days");
-    }
+      let startProposalDate = moment().add(7, "days");
+      if (space === "sdapw.eth") {
+        startProposalDate = startProposalDate.subtract(1, "days");
+      }
 
-    let day = startProposalDate.date();
-    let month = startProposalDate.month() + 1;
-    let year = startProposalDate.year();
+      let day = startProposalDate.date();
+      let month = startProposalDate.month() + 1;
+      let year = startProposalDate.year();
 
-    let endProposal: moment.Moment = null;;
-    if (space === "sdmav.eth") {
-      // For mav, title proposal is from friday to thrusday
-      endProposal = moment(startProposalDate.add(1, 'day')).add(13, 'days');
-    }
-    else if (space === "sdapw.eth") {
-      endProposal = moment(startProposalDate).add(13, 'days');
-    }
-    else if (isPendle) {
-      endProposal = moment(startProposalDate).add(6, 'days');
-    }
-    else {
-      endProposal = moment(startProposalDate).add(13, 'days');
-    }
+      let endProposal: moment.Moment = null;;
+      if (space === "sdmav.eth") {
+        // For mav, title proposal is from friday to thrusday
+        endProposal = moment(startProposalDate.add(1, 'day')).add(13, 'days');
+      }
+      else if (space === "sdapw.eth") {
+        endProposal = moment(startProposalDate).add(13, 'days');
+      }
+      else if (isPendle) {
+        endProposal = moment(startProposalDate).add(6, 'days');
+      }
+      else {
+        endProposal = moment(startProposalDate).add(13, 'days');
+      }
 
-    const dayEnd = endProposal.date();
-    const monthEnd = endProposal.month() + 1;
-    const yearEnd = endProposal.year();
+      const dayEnd = endProposal.date();
+      const monthEnd = endProposal.month() + 1;
+      const yearEnd = endProposal.year();
 
-    let label = space.replace("sd", "").replace(".eth", "").toUpperCase();
-    const network = space === "sdcake.eth" ? '56' : '1';
+      let label = space.replace("sd", "").replace(".eth", "").toUpperCase();
+      const network = space === "sdcake.eth" ? '56' : '1';
 
-    // Case for APW
-    if (label.toLowerCase() === "apw") {
-      label = "Spectra".toUpperCase();
-    }
+      // Case for APW
+      if (label.toLowerCase() === "apw") {
+        label = "Spectra".toUpperCase();
+      }
 
-    try {
-      const proposal = {
-        space: space,
-        type: "weighted",
-        title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
-        body: "Gauge vote for " + label + " inflation allocation.",
-        discussion: "https://votemarket.stakedao.org/votes",
-        choices: gauges,
-        start: startTimestamp,
-        end: endTimestamp,
-        snapshot: snapshotBlock,
-        plugins: JSON.stringify({}),
-        metadata: {
-          network
-        },
-      } as any;
-      const receipt = await client.proposal(web3 as any, web3.address, proposal) as any;
+      try {
+        const proposal = {
+          space: space,
+          type: "weighted",
+          title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
+          body: "Gauge vote for " + label + " inflation allocation.",
+          discussion: "https://votemarket.stakedao.org/votes",
+          choices: gauges,
+          start: startTimestamp,
+          end: endTimestamp,
+          snapshot: snapshotBlock,
+          plugins: JSON.stringify({}),
+          metadata: {
+            network
+          },
+        } as any;
 
-      if (space === "sdcrv.eth") {
-        // Wait 5 minutes to be in the voting window
-        await sleep(5 * 60 * 1000);
+        const receipt = await client.proposal(web3 as any, web3.address, proposal) as any;
 
-        // Push a vote on mainnet from PK for sdCRV/CRV gauge
-        await voteCRV(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
-        await voteCRV(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
-        await voteCRV(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
-      } else if (space === "sdcake.eth") {
-        // Wait 5 minutes to be in the voting window
-        await sleep(5 * 60 * 1000);
+        if (space === "sdcrv.eth") {
+          // Wait 5 minutes to be in the voting window
+          await sleep(5 * 60 * 1000);
 
-        await voteCake(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY);
+          // Push a vote on mainnet from PK for sdCRV/CRV gauge
+          await voteCRV(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, SDCRV_CRV_GAUGE);
+          await voteCRV(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, ARBITRUM_VSDCRV_GAUGE);
+          await voteCRV(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, POLYGON_VSDCRV_GAUGE);
+        } else if (space === "sdcake.eth") {
+          // Wait 5 minutes to be in the voting window
+          await sleep(5 * 60 * 1000);
+
+          await voteCake(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY);
+        }
+      }
+      catch (e) {
+        console.error(e);
+        await sendMessage("Create gauge proposals", `Space ${space} - ${e.error_description || e.message || ""}`);
       }
     }
-    catch (e) {
-      console.error(e);
-      await sendMessage("Create gauge proposals", `Space ${space} - ${e.error_description || e.message || ""}`);
-    }
+  }
+  catch (e) {
+    console.error(e);
+    await sendMessage("Create gauge proposals", `${e.error_description || e.message || ""}`);
+    throw e;
   }
 }
 
