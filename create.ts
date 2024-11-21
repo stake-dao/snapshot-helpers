@@ -34,7 +34,7 @@ const etherscans = [
   }
 ];
 
-const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth", "sdmav.eth"];
+const SPACES = ["sdcrv.eth", "sdfxs.eth", "sdangle.eth", "sdbal.eth", "sdpendle.eth", "sdcake.eth", "sdfxn.eth", "sdapw.eth"];
 const NETWORK_BY_SPACE = {
   "sdcrv.eth": "ethereum",
   "sdfxs.eth": "ethereum",
