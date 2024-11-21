@@ -345,6 +345,11 @@ const handleBasicSnaphsot = async (space: string) => {
         proposal.end = end;
         proposal.metadata = { url: `https://snapshot.org/#/anglegovernance.eth/proposal/${proposal.id}` };
 
+        // Exclude Angle scam proposal
+        if (proposal.title.indexOf("After a Successful DAO Vote, Angle decided to Launch the 1 Phase of the $gANGLE Distribution") > -1) {
+            continue;
+        }
+
         await createProposal({ payload: proposal });
     }
     console.log(`End handle ${space}`);
