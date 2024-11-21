@@ -173,7 +173,7 @@ const getCurveGauges = async (snapshotBlock: number): Promise<string[]> => {
                 const diffBlocks = snapshotBlock - Number(transaction.blockNumber)
                 const now = moment().unix();
                 const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
-                const isOldTwoYears = (now - createdTimestamp) >= ((2 * 365) * 86400)
+                const isOldTwoYears = (now - createdTimestamp) >= (((1 * 365) + (365/2)) * 86400)
                 if (isOldTwoYears) {
                   console.log("gauge ", gaugesMap[key].gauge, " is 2 years old");
                   // Check if previous weights are equals to 0 too
@@ -731,8 +731,6 @@ const voteCake = async (gauges: string[], proposalId: string, pkStr: string) => 
 };
 
 const getMavGauges = async (): Promise<string[]> => {
-
-  const { data: chainIds } = await axios.get("https://raw.githubusercontent.com/DefiLlama/chainlist/main/constants/chainIds.json");
 
   const response: string[] = [];
 
