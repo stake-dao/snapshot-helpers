@@ -173,7 +173,7 @@ const getCurveGauges = async (snapshotBlock: number): Promise<string[]> => {
                 const diffBlocks = snapshotBlock - Number(transaction.blockNumber)
                 const now = moment().unix();
                 const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
-                const isOldTwoYears = (now - createdTimestamp) >= (((1 * 365) + (365/2)) * 86400)
+                const isOldTwoYears = (now - createdTimestamp) >= (((1 * 365) + (365/3)) * 86400)
                 if (isOldTwoYears) {
                   console.log("gauge ", gaugesMap[key].gauge, " is 2 years old");
                   // Check if previous weights are equals to 0 too
@@ -376,7 +376,7 @@ const getPancakeGauges = async (): Promise<string[]> => {
             // On BSC chain, 1 block every 3 seconds
             const diffBlocks = blockNumbers[etherscan.chain.id] - Number(transaction.blockNumber)
             const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
-            const isOldOneYear = (now - createdTimestamp) >= ((30 * 11) * 86400)
+            const isOldOneYear = (now - createdTimestamp) >= ((30 * 8) * 86400)
             if (isOldOneYear) {
               // Skip
               continue;
