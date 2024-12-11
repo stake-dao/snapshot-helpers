@@ -3,7 +3,7 @@ name: "Create weekly gauge proposals"
 on: 
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 4'
+    - cron: '0 2 * * 4'
 
 env:
   HUB: ${{ secrets.HUB }}
