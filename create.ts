@@ -673,11 +673,15 @@ const voteCake = async (gauges: string[], proposalId: string, pkStr: string) => 
   const gaugesToVote = [
     {
       gauge: "0xB1D54d76E2cB9425Ec9c018538cc531440b55dbB", // sdcake stable
-      weight: 90,
+      weight: 93,
     },
     {
       gauge: "0xa0bec9b22a22caD9D9813Ad861E331210FE6C589", // defiedge sdt-bnb
-      weight: 10,
+      weight: 3.5,
+    },
+    {
+      gauge: "0x1dE329a4ADF92Fd61c24af18595e10843fc307e3", // SDT vault
+      weight: 3.5,
     }
   ];
 
