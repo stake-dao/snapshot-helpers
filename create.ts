@@ -1,7 +1,7 @@
 import * as dotenv from "dotenv";
 import { BytesLike, ethers } from "ethers";
 import snapshot from "@snapshot-labs/snapshot.js";
-import { request, gql } from 'graphql-request'
+import { request, gql, GraphQLClient } from 'graphql-request'
 import moment from "moment";
 import * as momentTimezone from "moment-timezone";
 import axios from "axios";
@@ -670,6 +670,12 @@ const voteCRV = async (gauges: string[], proposalId: string, pkStr: string, targ
 
 const voteCake = async (gauges: string[], proposalId: string, pkStr: string) => {
 
+  if(gauges.length === 0) {
+    const proposal = await getProposal(proposalId, "sdcake.eth");
+    gauges = proposal.choices;
+  }
+  
+
   const gaugesToVote = [
     {
       gauge: "0xB1D54d76E2cB9425Ec9c018538cc531440b55dbB", // sdcake stable
@@ -917,9 +923,82 @@ const main = async () => {
   }
 }
 
+interface GraphQLResponse {
+  proposals: Proposal[];
+}
+
+interface Proposal {
+  id: string;
+  title: string;
+  body: string;
+  choices: string[];
+  start: number;
+  end: number;
+  snapshot: string;
+  state: string;
+  author: string;
+  created: number;
+  type: string;
+  scores: number[];
+  quorum: number;
+  network: string;
+  space: {
+      id: string;
+      name: string;
+      symbol: string;
+  };
+}
+
+const getProposal = async (proposalId: string, space: string): Promise<Proposal> => {
+
+  // Requête GraphQL
+  const query = gql`
+    {
+      proposals(
+        where: {
+          space_in: ["${space}"],
+          id: "${proposalId}"
+        },
+        orderBy: "created",
+        orderDirection: desc,
+        first: 1000
+      ) {
+        id
+        title
+        body
+        choices
+        start
+        end
+        snapshot
+        state
+        author
+        created
+        type
+        scores
+        quorum
+        network
+        space {
+          id
+          name
+          symbol
+        }
+      }
+    }
+  `;
+
+  try {
+      const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql');
+      const graphqlResponse: GraphQLResponse = await graphqlClient.request(query);
+      return graphqlResponse.proposals[0];
+  } catch (err) {
+      console.error('Erreur lors de la requête GraphQL:', err);
+      throw err;
+  }
+}
+
 const votes = async () => {
   const crvId = "";
-  const cakeId = "0x5413503304dfb7064e2ebf9bbc7be7f530c0ae9cf2f598895e3545753b8d8877";
+  const cakeId = "0x1ce6f246a6f7c56cf93bc2cafe9b44dfc412049e2656e2e072bbfc4dcdaac292";
 
   if (crvId.length > 0) {
     const snapshotBlock = await getBlockByTimestamp("ethereum", moment().unix());
@@ -930,14 +1009,14 @@ const votes = async () => {
   }
 
   if (cakeId.length > 0) {
-    const cakeGauges = await getPancakeGauges();
-    await voteCake(cakeGauges, cakeId as string, process.env.VOTE_PRIVATE_KEY);
+    //const cakeGauges = await getPancakeGauges();
+    await voteCake([], cakeId as string, process.env.VOTE_PRIVATE_KEY);
   }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main().catch((error) => {
+votes().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
