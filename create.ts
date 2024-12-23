@@ -173,7 +173,7 @@ const getCurveGauges = async (snapshotBlock: number): Promise<string[]> => {
                 const diffBlocks = snapshotBlock - Number(transaction.blockNumber)
                 const now = moment().unix();
                 const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
-                const isOldTwoYears = (now - createdTimestamp) >= (((1 * 365) + (365/3)) * 86400)
+                const isOldTwoYears = (now - createdTimestamp) >= (((1 * 365)) * 86400)
                 if (isOldTwoYears) {
                   console.log("gauge ", gaugesMap[key].gauge, " is 2 years old");
                   // Check if previous weights are equals to 0 too
@@ -679,15 +679,15 @@ const voteCake = async (gauges: string[], proposalId: string, pkStr: string) => 
   const gaugesToVote = [
     {
       gauge: "0xB1D54d76E2cB9425Ec9c018538cc531440b55dbB", // sdcake stable
-      weight: 93,
+      weight: 90,
     },
     {
       gauge: "0xa0bec9b22a22caD9D9813Ad861E331210FE6C589", // defiedge sdt-bnb
-      weight: 3.5,
+      weight: 5,
     },
     {
       gauge: "0x1dE329a4ADF92Fd61c24af18595e10843fc307e3", // SDT vault
-      weight: 3.5,
+      weight: 5,
     }
   ];
 
