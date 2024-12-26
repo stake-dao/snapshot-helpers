@@ -3,6 +3,7 @@
         "module": "commonjs",
         "resolveJsonModule": true,
         "esModuleInterop": true,
-        "lib": ["es2021"]
+        "lib": ["es2021"],
+        "target": "ES2021"
     }
 }

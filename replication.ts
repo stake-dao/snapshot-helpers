@@ -14,8 +14,9 @@ import CurveUnderlyingVoterABI from './abis/CurveUnderlyingVoter.json';
 import AngleGovernorABI from './abis/AngleGovernor.json';
 import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseUnits } from "viem";
 import * as chains from 'viem/chains'
-import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
-import * as momentTimezone from "moment-timezone";
+import { ANGLE_ONCHAIN_SUBGRAPH_URL, CHAIN_ID_TO_RPC, MS_ADDRESS } from "./utils/constants";
+import { SafeTransactionHelper, TenderlyConfig } from "./utils/safe-proposer/safe-transaction";
+import { CHAT_ID_ERROR, sendMessage } from "./utils/telegram";
 
 dotenv.config();
 
@@ -889,7 +890,6 @@ interface ProposalClosed {
 
 const main = async () => {
 
-    const proposalsClosedData: ProposalClosedData = JSON.parse(fs.readFileSync("./data/proposals_closed.json", { encoding: 'utf-8' }));
     const proposalsFetched: ProposalFetched[][] = JSON.parse(fs.readFileSync("./data/replication_proposals.json", { encoding: 'utf-8' }));
     const timePerSpaces: Record<string, number> = JSON.parse(fs.readFileSync("./data/replication.json", { encoding: 'utf-8' }));
     const now = moment().unix();
@@ -941,64 +941,75 @@ const main = async () => {
     }
    
     // Check closed
+    const safeHelper = new SafeTransactionHelper(
+        {
+            chainId: BigInt(1),
+            rpcUrl: CHAIN_ID_TO_RPC[1],
+            safeAddress: MS_ADDRESS,
+        },
+        {
+            privateKey: process.env.SAFE_PROPOSER_PK
+        }
+    );
+
+    const tenderlyConfig: TenderlyConfig = {
+        accessKey: process.env.TENDERLY_ACCESS_KEY,
+        project: process.env.TENDERLY_ACCOUNT_SLUG,
+        user: process.env.TENDERLY_PROJECT_SLUG,
+    };
+
+    const onchainVotes: IProposalMessageForOperationChannel[] = [];
+
     for (const space of ens) {
         const proposals = await getClosed(space);
         for (const proposal of proposals) {
-            if (proposalsFetched[2].find((p) => p.id.toLowerCase() === proposal.id.toLowerCase())) {
-                continue;
-            }
-
             await sendTextToTelegramChat(proposal, spaces[space], false, false, true);
 
             const message = await getProposalMessageForOperationChannel(proposal, spaces[space], space);
             if (message) {
                 if (message.isOnchainProposal) {
-                    // Add the proposal closed
-                    let spaceProposalClosed = proposalsClosedData.spaces.find((p) => p.space === space);
-                    if (!spaceProposalClosed) {
-                        spaceProposalClosed = {
-                            space,
-                            proposalIds: [proposal]
-                        };
-                        proposalsClosedData.spaces.push(spaceProposalClosed)
-                    } else {
-                        spaceProposalClosed.proposalIds.push(proposal);
-                    }
+                    onchainVotes.push(message);
                 } else {
                     await sendTelegramMsgInSDGovChannel(formatSnapshotMessage(message));
                 }
             }
-
-            proposalsFetched[2].push({
-                id: proposal.id,
-                ts: now,
-            });
         }
     }
 
-    // Only for onchain vote
-    const min = momentTimezone.unix(now).tz('Europe/Paris').set('hours', 9).set('minute', 50).set('second', 0).set('millisecond', 0);
-    const nowTimezone = momentTimezone.unix(now).tz('Europe/Paris');
-    const diffDay = nowTimezone.diff(momentTimezone.unix(proposalsClosedData.lastTimestampMessageSent).tz('Europe/Paris').startOf("day"), "day");
-    if (nowTimezone.isAfter(min) && diffDay > 0) {
-
-        const messages: IProposalMessageForOperationChannel[] = [];
-        for (const space of proposalsClosedData.spaces) {
-            for (const proposal of space.proposalIds) {
-                const message = await getProposalMessageForOperationChannel(proposal, spaces[space.space], space.space);
-                if (message) {
-                    messages.push(message);
+    // Push the vote in MS
+    if (onchainVotes.length > 0) {
+        try {
+            const txDatas = onchainVotes.map((onchainVote) => {
+                return {
+                    data: onchainVote.payload,
+                    to: onchainVote.voter,
+                    value: '0',
                 }
+            });
+            const [simulations, safeTransaction] = await Promise.all([
+                safeHelper.simulateTransactions(
+                    txDatas,
+                    tenderlyConfig
+                ),
+                safeHelper.proposeTransactions(txDatas)
+            ]);
+
+            // Send tg message
+            const plurial = txDatas.length > 1 ? 's' : '';
+            let message = `${txDatas.length} new onchain vote${plurial} pushed\n`;
+            message += `Simulation${plurial}\n`;
+
+            for (const simulationUrl of simulations.urls) {
+                message += `- ${simulationUrl}\n`;
             }
-        }
 
-        if (messages.length > 0) {
-            await sendTelegramMsgInSDGovChannel(formatOnChainMessage(messages));
+            message += `Tx safe url : ${safeTransaction.url}\n`;
+            message += "@chago0x @pi3rrem";
+            await sendTelegramMsgInSDGovChannel(message);
         }
-
-        // Reset
-        proposalsClosedData.spaces = [];
-        proposalsClosedData.lastTimestampMessageSent = min.unix();
+        catch (e) {
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", e.error_description || e.message || "");
+        }
     }
 
     // Change timestamp for the next run
@@ -1011,11 +1022,9 @@ const main = async () => {
     const newProposalFetched: ProposalFetched[][] = [];
     newProposalFetched.push(proposalsFetched[0].filter((p) => p.ts > twoDaysAgo));
     newProposalFetched.push(proposalsFetched[1].filter((p) => p.ts > twoDaysAgo));
-    newProposalFetched.push(proposalsFetched[2].filter((p) => p.ts > twoDaysAgo));
 
     fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), {encoding: 'utf-8'});
     fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), {encoding: 'utf-8'});
-    fs.writeFileSync("./data/proposals_closed.json", JSON.stringify(proposalsClosedData), {encoding: 'utf-8'});
 };
 
 main().catch((error) => {

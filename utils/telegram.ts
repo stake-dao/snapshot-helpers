@@ -3,14 +3,19 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-export const sendMessage = async (botName: string, message: string): Promise<boolean> => {
-    try {
-        const url = `https://api.telegram.org/bot${process.env.TG_API_KEY_BOT_ERROR}/sendMessage`;
+export const CHAT_ID_ERROR = '-1002354704686';
 
-        const message_formatted = `Bot ${botName}\n${message}\n@pi3rrem @Lao0ni`;
+export const sendMessage = async (botToken: string, chat_id: string, botName: string | undefined, message: string): Promise<boolean> => {
+    try {
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+
+        let message_formatted = "";
+        if (botName) {
+            message_formatted = `Bot ${botName}\n${message}\n@pi3rrem @Lao0ni`;
+        }
 
         const payload = {
-            chat_id: '-1002354704686',
+            chat_id,
             text: message_formatted,
             parse_mode: "html",
             link_preview_options: { is_disabled: true }
