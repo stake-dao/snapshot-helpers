@@ -37,7 +37,9 @@ export class SafeTransactionHelper {
   constructor(
     private safeConfig: SafeConfig,
     private proposerConfig: ProposerConfig
-  ) { }
+  ) { 
+    this.init();
+  }
 
   async init() {
     this.provider = new JsonRpcProvider(this.safeConfig.rpcUrl);
