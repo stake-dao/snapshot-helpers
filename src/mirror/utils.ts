@@ -86,28 +86,14 @@ export const createProposal = async ({ payload }: any) => {
                     chain: chains.fraxtal,
                     transport: http("https://rpc.frax.com")
                 });
-                const block = await publicClient.getBlock({
-                    blockNumber: BigInt(payload.snapshot.toString()),
-                    includeTransactions: false
-                });
-                const blockTimestamp = Number(block.timestamp);
-                const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${blockTimestamp}`);
-                const mainnetBlock = mainnetBlockRes.height;
-                payload.snapshot = mainnetBlock.toString()
+                payload.snapshot = await getMainnetSnapshotBlock(publicClient, payload);
                 break;
             } case "spectradao.eth": {
                 const publicClient = createPublicClient({
                     chain: chains.base,
                     transport: http()
                 });
-                const block = await publicClient.getBlock({
-                    blockNumber: BigInt(payload.snapshot.toString()),
-                    includeTransactions: false
-                });
-                const blockTimestamp = Number(block.timestamp);
-                const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${blockTimestamp}`);
-                const mainnetBlock = mainnetBlockRes.height;
-                payload.snapshot = mainnetBlock.toString()
+                payload.snapshot = await getMainnetSnapshotBlock(publicClient, payload);
                 break;
             } default:
                 break;
@@ -144,3 +130,14 @@ export const createProposal = async ({ payload }: any) => {
         await sendMessage("Mirror", `Space ${SPACES[payload.space.id]}`)
     }
 };
+
+const getMainnetSnapshotBlock = async (publicClient: any, payload: any): Promise<string> => {
+    const block = await publicClient.getBlock({
+        blockNumber: BigInt(payload.snapshot.toString()),
+        includeTransactions: false
+    });
+
+    const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${Number(block.timestamp)}`);
+    const mainnetBlock = mainnetBlockRes.height;
+    return mainnetBlock.toString()
+}
