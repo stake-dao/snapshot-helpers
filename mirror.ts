@@ -1,65 +1,17 @@
 import { request, gql } from "graphql-request";
-import snapshot from "@snapshot-labs/snapshot.js";
-import { JsonRpcProvider } from "@ethersproject/providers";
 import axios from "axios";
 import * as dotenv from "dotenv";
 import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
-import { Wallet } from "ethers";
-import { createPublicClient, http } from "viem";
-import * as chains from 'viem/chains'
 import { sendMessage } from "./utils/telegram";
+import { fetchSDProposal, SNAPSHOT_URL } from "./src/mirror/request";
+import { createProposal, DEFAULT_MIN_TS, DELAY_ONE_DAYS, DELAY_TWO_DAYS, filterGaugesProposals } from "./src/mirror/utils";
+import { SPACES } from "./src/mirror/spaces";
 
 dotenv.config();
-
-const TelegramBot = require('node-telegram-bot-api');
-const token = process.env.TG_API_KEY_GOV_CHANNEL;
-const chatId = "-1001833039204";
-const bot = new TelegramBot(token, { polling: false });
-
-// https://github.com/snapshot-labs/snapshot.js/blob/master/src/schemas/proposal.json
-const MAX_LENGTH_TITLE = 256;
-const MAX_LENGTH_BODY = 10000;
-
-const SNAPSHOT_URL = "https://hub.snapshot.org";
-const RPC_PROVIDER_URL = "http://3.143.14.91:8545";
 
 const QUERY = gql`
 	query Proposals($spaces: [String!]!, $minCreated: Int!) {
 		proposals(first: 1000, orderBy: "end", orderDirection: asc, where: { space_in: $spaces, created_gt: $minCreated }) {
-			id
-			start
-			end
-			title
-			body
-			type
-			created
-			choices
-			snapshot
-			space {
-				id
-			}
-		}
-	}
-`;
-
-const QUERY_ACTIVE = gql`
-query Proposal($author: String) {
-	proposals(
-	  where: {
-		state: "active"
-		author: $author
-	  }
-	  orderBy: "created"
-	  orderDirection: desc
-	) {
-	  id
-	}
-  }
-`;
-
-const QUERY_SD = gql`
-	query Proposals($spaces: [String!]!) {
-		proposals(first: 1000 orderBy: "created", orderDirection: desc, where: { space_in: $spaces }) {
 			id
 			start
 			end
@@ -93,191 +45,10 @@ query Proposals($deadlineTimestamp: Int!, $snapshotTimestamp: Int!) {
 }
 `;
 
-const DEFAULT_MIN_TS = 1648816320;
-const ONE_HOUR = 3600;
-const DELAY_THREE_DAYS = 3 * 24 * ONE_HOUR;
-const DELAY_TWO_DAYS = 2 * 24 * ONE_HOUR;
-const DELAY_ONE_DAYS = 1 * 24 * ONE_HOUR;
-const SDCRVGOV = "sdcrv-gov.eth";
-
-const SPACES: any = {
-    "frax.eth": "sdfxs.eth",
-    "anglegovernance.eth": "sdangle.eth",
-    "balancer.eth": "sdbal.eth",
-    "curve.eth": SDCRVGOV,
-    "spectradao.eth": "sdapw.eth",
-    "veyfi.eth": "sdyfi.eth",
-    "mavxyz.eth": "sdmav.eth",
-    "fxn.eth": "sdfxn.eth",
-    "cakevote.eth": "sdcake.eth",
-    "blackpoolhq.eth": "sdbpt.eth"
-};
-
 const SPACES_DEFAULT_MIN_TS: any = {
     "spectradao.eth": 1662377996,
     "cakevote.eth": 1701457094,
     "blackpoolhq.eth": 1701457094,
-};
-
-const provider = new JsonRpcProvider(RPC_PROVIDER_URL);
-const snapshotClient = new snapshot.Client712(SNAPSHOT_URL);
-
-const errorsCreateProposal: any = {};
-
-const createProposal = async ({ payload }: any) => {
-    console.log("payload", payload);
-    const proposalId = payload.id || payload?.metadata?.url || "";
-    const key = payload.space.id + "-" + proposalId;
-
-    const end = payload.end;
-
-    if (end < payload.start) {
-        console.log("NOT ENOUGH DELAY");
-        delete errorsCreateProposal[key];
-        return;
-    }
-
-    if (end < Date.now() / 1000) {
-        console.log("ENDED");
-        delete errorsCreateProposal[key];
-        return;
-    }
-
-    let lastError: any = null;
-    const pks = [process.env.PK_1, process.env.PK_2, process.env.PK_3];
-    for (const pk of pks) {
-        const signer = new Wallet(pk, provider);
-        const address = signer.address;
-        const nbActiveProposal = await fetchNbActiveProtocolProposal(address);
-        if (nbActiveProposal >= 10) {
-            console.log("nbActiveProposal > 10 => " + nbActiveProposal + ", we can't add proposal for " + payload.space.id)
-            continue;
-        }
-
-        let title = payload.title;
-        let body = payload.body;
-
-        if (title && title.length > MAX_LENGTH_TITLE) {
-            title = title.substring(0, MAX_LENGTH_TITLE - 3) + "...";
-        }
-
-        if (body && body.length > MAX_LENGTH_BODY) {
-            body = body.substring(0, MAX_LENGTH_BODY - 3) + "...";
-        }
-
-        title = title || "No title";
-        body = body || "No body";
-
-        let network = "1"
-        switch (payload.space.id) {
-            case "cakevote.eth":
-                network = "56";
-                break;
-            case "frax.eth":
-                const publicClient = createPublicClient({
-                    chain: chains.fraxtal,
-                    transport: http("https://rpc.frax.com")
-                });
-                const block = await publicClient.getBlock({
-                    blockNumber: BigInt(payload.snapshot.toString()),
-                    includeTransactions: false
-                });
-                const blockTimestamp = Number(block.timestamp);
-                const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${blockTimestamp}`);
-                const mainnetBlock = mainnetBlockRes.height;
-                payload.snapshot = mainnetBlock.toString()
-                break;
-            default:
-                break;
-        }
-
-        const proposal: any = {
-            space: SPACES[payload.space.id],
-            type: payload.type,
-            title: title,
-            name: title,
-            body,
-            choices: payload.choices,
-            start: payload.start,
-            end: end,
-            snapshot: parseInt(payload.snapshot),
-            network,
-            strategies: JSON.stringify({}),
-            plugins: JSON.stringify({}),
-            metadata: JSON.stringify({}),
-        };
-
-        try {
-            const receipt = await snapshotClient.proposal(signer as any, address, proposal);
-            console.log(receipt);
-            lastError = null;
-
-            if (errorsCreateProposal[key]) {
-                bot.sendMessage(chatId, 'Error for proposal ' + proposalId + " in space " + SPACES[payload.space.id] + " resolved");
-                delete errorsCreateProposal[key];
-            }
-
-            break;
-        } catch (err: any) {
-            lastError = err;
-            console.log("ERR", err);
-        }
-    }
-
-    if (lastError && !errorsCreateProposal[key]) {
-        const errTxt = lastError?.error_description || "";
-        //bot.sendMessage(chatId, 'Error when mirror proposal ' + proposalId + ' in space ' + SPACES[payload.space.id] + " - " + errTxt + " - waiting resolution");
-
-        errorsCreateProposal[key] = errTxt;
-    }
-};
-
-const fetchNbActiveProtocolProposal = async (author: string) => {
-    const result = (await request(`${SNAPSHOT_URL}/graphql`, QUERY_ACTIVE, {
-        author
-    })) as any;
-    return result.proposals.length;
-};
-
-const getLabel = async (hash: string) => {
-    //const { data } = await axios.get(`https://api.ipfsbrowser.com/ipfs/get.php?hash=${hash}`);
-    try {
-        const { data } = await axios.get(`https://gateway.pinata.cloud/ipfs/${hash}`, {
-            headers: {
-                'Accept': 'Accept: text/plain'
-            }
-        });
-        return data.text;
-    }
-    catch (e) {
-        let found = false;
-        try {
-            const { data } = await axios.get("https://api-py.llama.airforce/curve/v1/dao/proposals");
-            for (const proposal of data.proposals) {
-                if (!proposal.ipfsMetadata) {
-                    continue;
-                }
-
-                if (proposal.ipfsMetadata.toLowerCase().indexOf(hash.toLowerCase()) > -1) {
-                    found = true;
-                    return proposal.metadata;
-                }
-            }
-        }
-        catch (e) {
-
-        }
-
-        if (!found) {
-            bot.sendMessage(chatId, `error pinata : https://gateway.pinata.cloud/ipfs/${hash}`);
-
-            console.log("error pinata : ", `https://gateway.pinata.cloud/ipfs/${hash}`);
-            console.log(e);
-            console.log("----");
-            const { data } = await axios.get(`https://api.ipfsbrowser.com/ipfs/get.php?hash=${hash}`);
-            return data.text;
-        }
-    }
 };
 
 const fetchProtocolProposal = async ({ space, minCreated = DEFAULT_MIN_TS }: any) => {
@@ -286,35 +57,6 @@ const fetchProtocolProposal = async ({ space, minCreated = DEFAULT_MIN_TS }: any
         minCreated: minCreated,
     })) as any;
     return result.proposals;
-};
-
-const fetchCurveProposalWithCurveMonitor = async (minCreated = DEFAULT_MIN_TS) => {
-    const { data: result } = await axios.get("https://prices.curve.fi/v1/dao/proposals?pagination=100000");
-
-    const proposals = result.proposals.filter((p: any) => p.ipfs_metadata !== null && p.start_date > minCreated);
-    const results = [];
-    for (const proposal of proposals) {
-        let [first, hash] = proposal.ipfs_metadata.split(":");
-        if (!hash) {
-            hash = first;
-        }
-        const label = await getLabel(hash);
-        results.push({ ...proposal, label });
-    }
-
-    return results;
-};
-
-const fetchSDProposal = async ({ space }: any) => {
-    const result = (await request(`${SNAPSHOT_URL}/graphql`, QUERY_SD, { spaces: [space] })) as any;
-    return result.proposals;
-};
-
-const filterGaugesProposals = (proposals: any, space?: string) => {
-    if (space === "veyfi.eth") {
-        return proposals;
-    }
-    return proposals.filter((x: any) => !x.title.includes("Gauge vote"));
 };
 
 const handleBasicSnaphsot = async (space: string) => {
@@ -337,7 +79,7 @@ const handleBasicSnaphsot = async (space: string) => {
 
         if (space === "veyfi.eth" && proposal.title?.indexOf("dYFI emission") > -1) {
             proposal.title = "Gauge vote YFI - " + proposal.title;
-            end  = proposal.end - DELAY_ONE_DAYS;
+            end = proposal.end - DELAY_ONE_DAYS;
         }
 
         console.log(`Handle proposal : ${proposal.title}`);
@@ -441,39 +183,6 @@ const handleOnchainAngleSnaphsot = async (space: string) => {
     }
 };
 
-const handleCurve = async () => {
-    console.log("handleCurve")
-    const sdResult = await fetchSDProposal({ space: SDCRVGOV });
-    const sdProposals = filterGaugesProposals(sdResult);
-    const minCreated = sdProposals?.[0]?.created;
-    const result = await fetchCurveProposalWithCurveMonitor(minCreated);
-
-    for (const data of result) {
-        const link = `https://dao.curve.fi/vote/${data.vote_type.toLowerCase()}/${data.vote_id}`;
-        const body = `View more on ${link}`;
-
-        const proposal = {
-            space: { id: "curve.eth" },
-            type: "single-choice",
-            title: data.metadata,
-            body: body,
-            choices: ["Yes", "No"],
-            start: parseInt(data.start_date, 10),
-            end: parseInt(data.start_date, 10) + DELAY_THREE_DAYS,
-            snapshot: data.snapshot_block,
-            network: "1",
-            strategies: JSON.stringify({}),
-            plugins: JSON.stringify({}),
-            metadata: { url: `https://dao.curve.fi/vote/${data.vote_type.toLowerCase()}/${data.vote_id}` },
-        };
-
-        console.log(`Handle proposal :  ${proposal.title}`);
-        console.log(`Start proposal :  ${proposal.start}`);
-        console.log(`End proposal :  ${proposal.end}`);
-        await createProposal({ payload: proposal });
-    }
-};
-
 const handlers: Record<string, (space: string) => Promise<void>> = {
     "frax.eth": handleBasicSnaphsot,
     "anglegovernance.eth": handleOnchainAngleSnaphsot,
@@ -484,15 +193,17 @@ const handlers: Record<string, (space: string) => Promise<void>> = {
     "mavxyz.eth": handleBasicSnaphsot,
     "fxn.eth": handleBasicSnaphsot,
     "cakevote.eth": handleBasicSnaphsot,
-    "curve.eth": handleCurve,
 };
 
 const main = async () => {
     const spaces = Object.keys(SPACES);
     for (const space of spaces) {
         try {
-            console.log("execute space ", space)
-            await handlers[space](space);
+            const handlerFunc = handlers[space];
+            if (handlerFunc) {
+                console.log("Execute space ", space)
+                await handlers[space](space);
+            }
         }
         catch (e) {
             console.error(e);
@@ -500,7 +211,6 @@ const main = async () => {
         }
     }
     console.log("sync done");
-    await bot.stopPolling();
     return;
 };
 

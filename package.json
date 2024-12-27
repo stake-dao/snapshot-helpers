@@ -20,6 +20,7 @@
   "scripts": {
     "start": "npx ts-node create.ts",
     "mirror": "npx ts-node mirror.ts",
+    "mirror-crv": "npx ts-node src/mirror/crv.ts",
     "replication": "npx ts-node replication.ts",
     "test": "npx ts-node utils/telegram.ts"
   }
