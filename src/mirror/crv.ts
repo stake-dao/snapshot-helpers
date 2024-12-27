@@ -4,6 +4,7 @@ import * as dotenv from "dotenv";
 import { fetchSDProposal, SnapshotProposal } from "./request";
 import { SDCRVGOV } from "./spaces";
 import { CurveMonitorProposal } from "./interfaces";
+import { sendMessage } from "../../utils/telegram";
 
 dotenv.config();
 
@@ -110,7 +111,7 @@ const getLabel = async (hash: string) => {
         }
 
         if (!found) {
-            getTelegramBot().sendMessage(TELEGRAM_BOT_MIRROR_CHAT_ID, `error pinata : https://gateway.pinata.cloud/ipfs/${hash}`);
+            sendMessage("Mirror CRV", `error pinata : https://gateway.pinata.cloud/ipfs/${hash}`)
 
             console.log("error pinata : ", `https://gateway.pinata.cloud/ipfs/${hash}`);
             console.log(e);
