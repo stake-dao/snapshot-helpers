@@ -27,7 +27,9 @@ const mirrorCrv = async () => {
     }
 
     for (const data of result) {
-        const body = `View more on ${getLink(data)}`;
+        const link = getLink(data);
+        const body = `View more on ${link}`;
+
         const proposal = {
             space: { id: "curve.eth" },
             type: "single-choice",
@@ -40,7 +42,7 @@ const mirrorCrv = async () => {
             network: "1",
             strategies: JSON.stringify({}),
             plugins: JSON.stringify({}),
-            metadata: { url: `https://dao.curve.fi/vote/${data.vote_type.toLowerCase()}/${data.vote_id}` },
+            metadata: { url: link },
         };
 
         console.log(`Handle proposal :  ${proposal.title}`);
