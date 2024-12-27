@@ -51,6 +51,7 @@ export const createProposal = async ({ payload }: any) => {
     const provider = new JsonRpcProvider(CHAIN_ID_TO_RPC[1]);
     const snapshotClient = new snapshot.Client712(SNAPSHOT_URL);
     const pks = [process.env.PK_1, process.env.PK_2, process.env.PK_3];
+    let created = false;
 
     for (const pk of pks) {
         const signer = new Wallet(pk, provider);
@@ -131,10 +132,15 @@ export const createProposal = async ({ payload }: any) => {
         try {
             const receipt = await snapshotClient.proposal(signer as any, address, proposal);
             console.log(receipt);
+            created = true;
             break;
         } catch (e: any) {
             console.log("ERR", e);
             await sendMessage("Mirror", `Space ${SPACES[payload.space.id]} - ${e.error_description || e.message || ""}`)
         }
+    }
+
+    if (!created) {
+        await sendMessage("Mirror", `Space ${SPACES[payload.space.id]}`)
     }
 };
