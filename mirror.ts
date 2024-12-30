@@ -446,7 +446,7 @@ const handleCurve = async () => {
     const sdResult = await fetchSDProposal({ space: SDCRVGOV });
     const sdProposals = filterGaugesProposals(sdResult);
     const minCreated = sdProposals?.[0]?.created;
-    const result = await fetchCurveProposalWithCurveMonitor(1735395754);
+    const result = await fetchCurveProposalWithCurveMonitor(minCreated);
 
     for (const data of result) {
         const link = `https://dao.curve.fi/vote/${data.vote_type.toLowerCase()}/${data.vote_id}`;
