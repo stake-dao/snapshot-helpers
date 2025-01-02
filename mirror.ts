@@ -7,7 +7,7 @@ import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
 import { Wallet } from "ethers";
 import { createPublicClient, http } from "viem";
 import * as chains from 'viem/chains'
-import { sendMessage } from "./utils/telegram";
+import { CHAT_ID_ERROR, sendMessage } from "./utils/telegram";
 
 dotenv.config();
 
@@ -496,7 +496,7 @@ const main = async () => {
         }
         catch (e) {
             console.error(e);
-            await sendMessage("Mirror proposal", `Space ${space} - ${e.error_description || e.message || ""}`);
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror proposal", `Space ${space} - ${e.error_description || e.message || ""}`);
         }
     }
     console.log("sync done");
