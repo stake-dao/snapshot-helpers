@@ -2,10 +2,10 @@ import { request, gql } from "graphql-request";
 import axios from "axios";
 import * as dotenv from "dotenv";
 import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
-import { sendMessage } from "./utils/telegram";
 import { fetchSDProposal, SNAPSHOT_URL } from "./src/mirror/request";
 import { createProposal, DEFAULT_MIN_TS, DELAY_ONE_DAYS, DELAY_TWO_DAYS, filterGaugesProposals } from "./src/mirror/utils";
 import { SPACES } from "./src/mirror/spaces";
+import { CHAT_ID_ERROR, sendMessage } from "./utils/telegram";
 
 dotenv.config();
 
@@ -207,7 +207,7 @@ const main = async () => {
         }
         catch (e) {
             console.error(e);
-            await sendMessage("Mirror proposal", `Space ${space} - ${e.error_description || e.message || ""}`);
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror proposal", `Space ${space} - ${e.error_description || e.message || ""}`);
         }
     }
     console.log("sync done");

@@ -5,16 +5,16 @@ import { Wallet } from "@ethersproject/wallet";
 import axios from "axios";
 import * as dotenv from "dotenv";
 import moment from "moment";
-import { sleep } from "./utils/sleep";
+import { sleep } from "../../utils/sleep";
 import fs from 'fs';
 import * as lodhash from 'lodash';
 import * as linkify from "linkifyjs";
-import CurveVoterABI from './abis/CurveVoter.json';
-import CurveUnderlyingVoterABI from './abis/CurveUnderlyingVoter.json';
-import AngleGovernorABI from './abis/AngleGovernor.json';
+import CurveVoterABI from '../../abis/CurveVoter.json';
+import CurveUnderlyingVoterABI from '../../abis/CurveUnderlyingVoter.json';
+import AngleGovernorABI from '../../abis/AngleGovernor.json';
 import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseUnits } from "viem";
 import * as chains from 'viem/chains'
-import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
+import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "../../utils/constants";
 import * as momentTimezone from "moment-timezone";
 
 dotenv.config();
@@ -204,7 +204,7 @@ const getNewProposals = async (space: string, timePerSpaces: Record<string, numb
 
 
 const getReminder = async (space: string, end: number): Promise<Proposal[]> => {
-    
+
     let proposals: Proposal[] = [];
 
     // Calcul de l'intervalle de temps pour la requête GraphQL
@@ -429,7 +429,7 @@ const getPctBase = async (votingAddress: string): Promise<number | undefined> =>
     return undefined;
 }
 
-const getOriginalAngleProposal = async(proposal: Proposal): Promise<AngleProposal | undefined> => {
+const getOriginalAngleProposal = async (proposal: Proposal): Promise<AngleProposal | undefined> => {
     const graphqlClient = new GraphQLClient(ANGLE_ONCHAIN_SUBGRAPH_URL);
 
     const graphqlRequest = gql`
@@ -494,7 +494,7 @@ const getAngleVotingPower = async (snapshotTimestamp: number): Promise<bigint | 
         abi: AngleGovernorABI,
         functionName: 'getVotes',
         args: [ANGLE_LOCKER, snapshotTimestamp]
-      });
+    });
 
     return BigInt(response as any) || undefined;
 }
@@ -572,13 +572,13 @@ interface IProposalMessageForOperationChannel {
 
 const getProposalMessageForOperationChannel = async (proposal: Proposal, token: string, space: string): Promise<IProposalMessageForOperationChannel | undefined> => {
     // Skip if proposal is our gauge vote and if it's not YFI (beacause YFI is 100% on snapshot)
-    if(space !== "sdyfi.eth" && proposal.title.indexOf("Gauge vote") > -1) {
+    if (space !== "sdyfi.eth" && proposal.title.indexOf("Gauge vote") > -1) {
         return undefined;
     }
 
     const originSpace = originSpaces[space];
-	const isCurveProposal = originSpace == "curve.eth";
-	
+    const isCurveProposal = originSpace == "curve.eth";
+
     let isAngleOnChainProposal = false;
     let isOnchainProposal = isCurveProposal;
     let deadline = proposal.end;
@@ -589,7 +589,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
         deadline += DELAY_CURVE;
     } else {
         deadline += DELAY_OTHERS;
-    }	
+    }
 
     let text = "🔒 " + token + " : " + proposal.title.replaceAll("<>", "") + ". <a href='https://snapshot.org/#/" + space + "/proposal/" + proposal.id + "'>Stake DAO</a>\n"
 
@@ -604,18 +604,18 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
     }
 
     // Compute results
-	const total = proposal.scores.reduce((acc:number, score:number) => acc + score, 0);
-    let payload: `0x${string}` | undefined = undefined;
+    const total = proposal.scores.reduce((acc: number, score: number) => acc + score, 0);
+    let payload: `0x${string}` | undefined = undefined;
     let voter: string | undefined = undefined;
 
-	if (total === 0) {
-		// Nothing to replicate
-		text += "✅ Nothing to replicate"
+    if (total === 0) {
+        // Nothing to replicate
+        text += "✅ Nothing to replicate"
 
         // Tag as false even if true to avoid to compute the payload ...
         isOnchainProposal = false;
-	} else if (proposal.quorum > total) {
-		text += "❌ Not replication because of no quorum\n"
+    } else if (proposal.quorum > total) {
+        text += "❌ Not replication because of no quorum\n"
 
         // Tag as false even if true to avoid to compute the payload ...
         isOnchainProposal = false;
@@ -632,14 +632,14 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
             }
 
             const choice = proposal.choices[i];
-            if(choice === "No") {
+            if (choice === "No") {
                 nay += score;
-            } else if(choice === "Yes") {
+            } else if (choice === "Yes") {
                 yea += score;
             }
 
             totalVotes += score;
-            
+
             const percentage = score * 100 / total;
 
             votes.push(lodhash.round(percentage, 2) + "% " + proposal.choices[i]);
@@ -708,7 +708,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
                         text += "❌ Error when try to fetch original angle proposal - convert snapshot timestamp \n"
                     } else {
                         const votingPower = await getAngleVotingPower(snapshotTimestamp);
-                        if(votingPower === undefined) {
+                        if (votingPower === undefined) {
                             text += "❌ Error when try to fetch original angle proposal - voting power \n"
                         } else {
 
@@ -716,7 +716,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
                             let forr = parseUnits(proposal.choices[1], 18);
                             let abstain = parseUnits(proposal.choices[2], 18);
 
-                            const total = against + forr+abstain;
+                            const total = against + forr + abstain;
 
                             const percentageAgainst = against * BigInt(100) / total;
                             const percentageForr = forr * BigInt(100) / total;
@@ -731,13 +731,13 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
                             payload = encodeFunctionData({
                                 abi: AngleGovernorABI,
                                 functionName: 'castVoteWithReasonAndParams',
-                                args: [id, BigInt(0), "",  against, forr, abstain]
+                                args: [id, BigInt(0), "", against, forr, abstain]
                             });
 
                             voter = ANGLE_VOTER;
-    
+
                             //text += "Angle voter V5 : " + ANGLE_VOTER + "\n"
-							//text += "Payload : " + payload + "\n"
+                            //text += "Payload : " + payload + "\n"
                             text += "Vote : (" + votes.join(",") + ")\n"
                         }
                     }
@@ -747,7 +747,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
             }
         } else {
             const originalProposal = await getOriginalProposal(proposal, space)
-            if(originalProposal === undefined) {
+            if (originalProposal === undefined) {
                 text += "❌ can't fetch original proposal \n"
             } else {
                 for (let i = 0; i < 10; i++) {
@@ -760,22 +760,22 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
             }
 
             text += "Vote : (" + votes.join(",") + ") : "
-			if (originalProposal !== undefined) {
-				text += "<a href='https://snapshot.org/#/" + originSpace + "/proposal/" + originalProposal.id + "'>" + originSpace + "</a>\n"
-			} else {
-				text += "<a href='https://snapshot.org/#/" + originSpace + "'>" + originSpace + "</a>\n"
-			}
+            if (originalProposal !== undefined) {
+                text += "<a href='https://snapshot.org/#/" + originSpace + "/proposal/" + originalProposal.id + "'>" + originSpace + "</a>\n"
+            } else {
+                text += "<a href='https://snapshot.org/#/" + originSpace + "'>" + originSpace + "</a>\n"
+            }
         }
 
-		//text += "Deadline : " + moment.unix(deadline).format("LLL") + " @chago0x @hubirb\n"
+        //text += "Deadline : " + moment.unix(deadline).format("LLL") + " @chago0x @hubirb\n"
 
-		if (!isOnchainProposal) {
-			if (replicateDone) {
-				text += "✅ Vote replication done"
-			} else {
-				text += "❌ Vote replication failed"
-			}
-		}
+        if (!isOnchainProposal) {
+            if (replicateDone) {
+                text += "✅ Vote replication done"
+            } else {
+                text += "❌ Vote replication failed"
+            }
+        }
     }
 
     return {
@@ -791,10 +791,10 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
 const formatSnapshotMessage = (proposalMessage: IProposalMessageForOperationChannel): string => {
     const lines = proposalMessage.text.split("\n");
     const voteReplicated = lines.pop()
-    
+
     lines.push(`Deadline : ${moment.unix(proposalMessage.deadline).format("LLL")} @chago0x @hubirb`);
     lines.push(voteReplicated);
-    
+
     return lines.join("\n");
 }
 
@@ -808,7 +808,7 @@ const formatOnChainMessage = (proposalMessages: IProposalMessageForOperationChan
     const payloads: `0x${string}`[] = [];
     const voters: string[] = [];
     let minDeadline = 0;
-    
+
     for (const proposalMessage of proposalMessages) {
 
         if (minDeadline < proposalMessage.deadline) {
@@ -817,10 +817,10 @@ const formatOnChainMessage = (proposalMessages: IProposalMessageForOperationChan
 
         messages.push(proposalMessage.text)
 
-        if(proposalMessage.payload) {
+        if (proposalMessage.payload) {
             payloads.push(proposalMessage.payload);
         }
-        if(proposalMessage.voter) {
+        if (proposalMessage.voter) {
             voters.push(proposalMessage.voter);
         }
     }
@@ -837,7 +837,7 @@ const formatOnChainMessage = (proposalMessages: IProposalMessageForOperationChan
 
     for (let i = 0; i < payloads.length; i++) {
         if (haveDifferentVoter) {
-            message += `Payload ${i+1} : \n`;
+            message += `Payload ${i + 1} : \n`;
             if (voters.length > i) {
                 message += `Voter : ${voters[i]} \n`;
             }
@@ -846,7 +846,7 @@ const formatOnChainMessage = (proposalMessages: IProposalMessageForOperationChan
             }
 
         } else if (payloads.length > i) {
-            message += `Payload ${i+1} : ${payloads[i]}\n`;
+            message += `Payload ${i + 1} : ${payloads[i]}\n`;
         }
     }
 
@@ -939,7 +939,7 @@ const main = async () => {
             });
         }
     }
-   
+
     // Check closed
     for (const space of ens) {
         const proposals = await getClosed(space);
@@ -1013,9 +1013,9 @@ const main = async () => {
     newProposalFetched.push(proposalsFetched[1].filter((p) => p.ts > twoDaysAgo));
     newProposalFetched.push(proposalsFetched[2].filter((p) => p.ts > twoDaysAgo));
 
-    fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), {encoding: 'utf-8'});
-    fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), {encoding: 'utf-8'});
-    fs.writeFileSync("./data/proposals_closed.json", JSON.stringify(proposalsClosedData), {encoding: 'utf-8'});
+    fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), { encoding: 'utf-8' });
+    fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), { encoding: 'utf-8' });
+    fs.writeFileSync("./data/proposals_closed.json", JSON.stringify(proposalsClosedData), { encoding: 'utf-8' });
 };
 
 main().catch((error) => {
