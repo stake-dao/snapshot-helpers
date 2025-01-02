@@ -140,4 +140,8 @@ const getLink = (proposal: CurveMonitorProposal): string => {
     return `https://dao.curve.fi/vote/${proposal.vote_type.toLowerCase()}/${proposal.vote_id}`;
 }
 
-mirrorCrv().catch((e) => console.error(e));
+mirrorCrv().catch((e) => {
+    console.error(e);
+    sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirro CRV", `${e.error_description || e.message || ""}`)
+        .finally(() => process.exitCode = 1);
+});
