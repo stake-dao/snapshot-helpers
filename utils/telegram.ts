@@ -23,7 +23,6 @@ export const sendMessage = async (botToken: string, chat_id: string, botName: st
         const headers = { 'Content-Type': 'application/json' };
 
         try {
-            console.log(url, payload)
             const response = await axios.post(url, payload, { headers });
             console.log('Message sent:', response.data);
             return true;
