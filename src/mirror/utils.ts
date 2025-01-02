@@ -9,7 +9,7 @@ import { createPublicClient, http } from "viem";
 import * as chains from 'viem/chains'
 import axios from "axios";
 import { SPACES } from "./spaces";
-import { sendMessage } from "../../utils/telegram";
+import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
 
 dotenv.config();
 
@@ -122,12 +122,12 @@ export const createProposal = async ({ payload }: any) => {
             break;
         } catch (e: any) {
             console.log("ERR", e);
-            await sendMessage("Mirror", `Space ${SPACES[payload.space.id]} - ${e.error_description || e.message || ""}`)
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `Space ${SPACES[payload.space.id]} - ${e.error_description || e.message || ""}`)
         }
     }
 
     if (!created) {
-        await sendMessage("Mirror", `Space ${SPACES[payload.space.id]}`)
+        await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `Space ${SPACES[payload.space.id]}`)
     }
 };
 

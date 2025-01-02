@@ -4,10 +4,9 @@ import * as dotenv from "dotenv";
 import { fetchSDProposal, SnapshotProposal } from "./request";
 import { SDCRVGOV } from "./spaces";
 import { CurveMonitorProposal } from "./interfaces";
-import { sendMessage } from "../../utils/telegram";
+import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
 
 dotenv.config();
-
 
 const mirrorCrv = async () => {
     console.log("Mirror CRV proposals")
@@ -113,7 +112,7 @@ const getLabel = async (hash: string) => {
         }
 
         if (!found) {
-            sendMessage("Mirror CRV", `error pinata : https://gateway.pinata.cloud/ipfs/${hash}`)
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror CRV", `error pinata : https://gateway.pinata.cloud/ipfs/${hash}`)
 
             console.log("error pinata : ", `https://gateway.pinata.cloud/ipfs/${hash}`);
             console.log(e);
