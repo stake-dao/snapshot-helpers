@@ -884,10 +884,11 @@ const main = async () => {
     newProposalFetched.push(proposalsFetched[1].filter((p) => p.ts > twoDaysAgo));
 
     fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), {encoding: 'utf-8'});
-    fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), {encoding: 'utf-8'});
+    fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), { encoding: 'utf-8' });
 };
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
+main().catch((e) => {
+    console.error(e);
+    sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", `${e.error_description || e.message || ""}`)
+        .finally(() => process.exitCode = 1);
 });
