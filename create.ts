@@ -798,7 +798,8 @@ const main = async () => {
       // Because all our gauge votes are bi-monthly
       // Except for pendle, every week
       const isPendle = space.toLowerCase() === "sdpendle.eth".toLowerCase();
-      const diff = isPendle ? 6 : 10;
+      const isSpectra = space.toLowerCase() === "sdapw.eth".toLowerCase();
+      const diff = (isPendle || isSpectra) ? 6 : 10;
       if (lastGaugeProposal && lastGaugeProposal.created + (diff * 86400) > now) {
         continue;
       }
@@ -841,9 +842,9 @@ const main = async () => {
       }
 
       let startProposalDate = moment().add(7, "days");
-      if (space === "sdapw.eth") {
-        startProposalDate = startProposalDate.subtract(1, "days");
-      }
+      //if (isSpectra) {
+      //  startProposalDate = startProposalDate.subtract(1, "days");
+      //}
 
       let day = startProposalDate.date();
       let month = startProposalDate.month() + 1;
@@ -854,10 +855,7 @@ const main = async () => {
         // For mav, title proposal is from friday to thrusday
         endProposal = moment(startProposalDate.add(1, 'day')).add(13, 'days');
       }
-      else if (space === "sdapw.eth") {
-        endProposal = moment(startProposalDate).add(13, 'days');
-      }
-      else if (isPendle) {
+      else if (isPendle || isSpectra) {
         endProposal = moment(startProposalDate).add(6, 'days');
       }
       else {
