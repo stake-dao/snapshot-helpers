@@ -19,8 +19,9 @@ export abstract class CreateProposal {
             }
 
             const space = this.getSpace();
-
-            const blockTimestamp = moment().utc().set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
+            const now = moment().utc();
+            const thursday = moment(now).startOf('week').add(4, 'days');
+            const blockTimestamp =  thursday.set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
             const startTimestamp = blockTimestamp.unix();
             const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(5, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
 
@@ -33,7 +34,7 @@ export abstract class CreateProposal {
             }
 
             // Get start / end proposal dates to generate the title
-            const startProposalDate = moment().add(7, "days");
+            const startProposalDate = moment(thursday).add(7, "days");
             const endProposalDate = this.getEndProposalTimestamp(startProposalDate);
 
             const day = startProposalDate.date();
@@ -50,8 +51,8 @@ export abstract class CreateProposal {
             const proposal = {
                 space: space,
                 type: "weighted",
-                title: "Gauge vote " + label + " - " + day + "/" + month + "/" + year + " - " + dayEnd + "/" + monthEnd + "/" + yearEnd,
-                body: "Gauge vote for " + label + " inflation allocation.",
+                title: `Gauge vote ${label} - ${day}/${month}/${year} - ${dayEnd}/${monthEnd}/${yearEnd}`,
+                body: `Gauge vote for ${label} inflation allocation.`,
                 discussion: "https://votemarket.stakedao.org/votes",
                 choices: gauges,
                 start: startTimestamp,
