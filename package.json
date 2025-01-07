@@ -21,7 +21,14 @@
     "viem": "~2.19.9"
   },
   "scripts": {
-    "start": "npx ts-node create.ts",
+    "weekly-crv-proposal": "npx ts-node src/gauge-proposals/crv.ts",
+    "weekly-angle-proposal": "npx ts-node src/gauge-proposals/angle.ts",
+    "weekly-bal-proposal": "npx ts-node src/gauge-proposals/bal.ts",
+    "weekly-fxn-proposal": "npx ts-node src/gauge-proposals/fxn.ts",
+    "weekly-fxs-proposal": "npx ts-node src/gauge-proposals/fxs.ts",
+    "weekly-cake-proposal": "npx ts-node src/gauge-proposals/cake.ts",
+    "weekly-pendle-proposal": "npx ts-node src/gauge-proposals/pendle.ts",
+    "weekly-spectra-proposal": "npx ts-node src/gauge-proposals/spectra.ts",
     "mirror": "npx ts-node mirror.ts",
     "mirror-crv": "npx ts-node src/mirror/crv.ts",
     "replication": "npx ts-node src/replication/replication.ts",

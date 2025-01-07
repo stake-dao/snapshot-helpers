@@ -1,4 +1,4 @@
-name: "Create weekly gauge proposals"
+name: "Create weekly BAL gauge proposals"
 
 on: 
   workflow_dispatch:
@@ -25,4 +25,4 @@ jobs:
       - run: |
           npm install
       - run: |
-          npm run start
+          npm run weekly-bal-proposal
