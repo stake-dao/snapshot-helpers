@@ -501,7 +501,6 @@ const replicateVote = async (space: string, proposalSD: Proposal, originalPropos
     }
     catch (e) {
         console.log(e);
-        await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", e.error_description || e.message || "");
         return false;
     }
 }
@@ -691,7 +690,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
             }
         } else {
             const originalProposal = await getOriginalProposal(proposal, space)
-            if(originalProposal === undefined) {
+            if (originalProposal === undefined) {
                 text += "❌ can't fetch original proposal \n"
             } else {
                 for (let i = 0; i < 10; i++) {
@@ -700,6 +699,10 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
                         replicateDone = true;
                         break;
                     }
+                }
+
+                if (!replicateDone) {
+                    await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", `Replication failed from ${space}-${proposal.id}, check logs`);
                 }
             }
 
