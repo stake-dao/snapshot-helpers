@@ -32,17 +32,18 @@ class SpectraCreateProposal extends CreateProposal {
 
     protected async getGauges(snapshotBlock: number): Promise<string[]> {
 
-        const VOTER = "0x3d72440af4b0312084BC51A2038180876D208832" as `0x${string}`;
-        const GOVERNANCE = "0x4425779F145f6599CFCeAa9443b497a7a2DFdB17" as `0x${string}`;
+        const VOTER_CONTRACT = "0x174a1f4135Fab6e7B6Dbe207fF557DFF14799D33" as `0x${string}`;
+        const GOVERNANCE = "0xa3eeA13183421c9A8BDA0BDEe191B70De8CA445D" as `0x${string}`;
 
         const publicClient = createPublicClient({
-            chain: chains.mainnet,
-            transport: http(CHAIN_ID_TO_RPC[1])
+            chain: chains.base,
+            transport: http(CHAIN_ID_TO_RPC[8453])
         });
 
         const voterAbi = parseAbi([
-            'function getAllPoolIds() external view returns(uint160[])',
-            'function isVoteAuthorized(uint160 poolId) external view returns(bool)'
+            'function isVoteAuthorized(uint160 poolId) external view returns(bool)',
+            'function poolIds(uint256 poolId) external view returns(uint160)',
+            'function length() external view returns(uint256)'
         ]);
 
         const governanceAbi = parseAbi([
@@ -59,59 +60,67 @@ class SpectraCreateProposal extends CreateProposal {
         ]);
 
         // Get all ids
-        const results = await (publicClient.multicall({
+        // @ts-ignore
+        let results = await (publicClient.multicall({
             contracts: [
                 {
-                    address: VOTER,
-                    abi: voterAbi as any,
-                    functionName: 'getAllPoolIds',
+                    address: VOTER_CONTRACT,
+                    abi: voterAbi,
+                    functionName: 'length',
                 } as any
             ] as any
         }) as any);
 
-        const ids = results.shift().result as bigint[];
+        const poolIdsLength = results.shift().result;
 
-        // Check if id is authorized to vote for
-        const contracts = ids.map((id) => {
-            return {
-                address: VOTER,
+        let calls = Array.from(Array(Number(poolIdsLength)).keys()).map(
+            (_, index) => ({
+                address: VOTER_CONTRACT,
                 abi: voterAbi,
-                functionName: 'isVoteAuthorized',
-                args: [id]
-            } as any
-        }) as any[];
-        const results2 = await publicClient.multicall({contracts});
-
-        const idsAuthorized: bigint[] = []
-        for (let i = 0; i < ids.length; i++) {
-            const id = ids[i];
-            const isAuthorized = (results2.shift().result as any) as boolean;
-            if (isAuthorized) {
-                idsAuthorized.push(id);
-            }
-        }
-
-        // Get pool data for pool address
-        const results3 = await publicClient.multicall({
-            contracts: idsAuthorized.map((id) => {
-                return {
-                    address: GOVERNANCE,
-                    abi: governanceAbi,
-                    functionName: 'poolsData',
-                    args: [id]
-                }
+                functionName: "poolIds",
+                args: [index],
+                chainId: chains.base.id
             })
-        });
+        ) as any[];
+
+        // @ts-ignore
+        const poolIds = (await publicClient.multicall({ contracts: calls })).map(({ result }) => result as bigint)
+
+        calls = [];
+        for (const poolId of poolIds) {
+            calls.push({
+                address: GOVERNANCE,
+                abi: governanceAbi,
+                functionName: "poolsData",
+                args: [poolId],
+                chainId: chains.base.id,
+            });
+            calls.push({
+                address: VOTER_CONTRACT,
+                abi: voterAbi,
+                functionName: "isVoteAuthorized",
+                args: [poolId],
+                chainId: chains.base.id,
+            });
+        }
+        results = await publicClient.multicall({ contracts: calls });
 
         const pools: any[] = [];
+        for (const poolId of poolIds) {
+            const poolData = results.shift().result as any;
+            const isVoteAuthorizedRes = results.shift();
+            const isVoteAuthorized = isVoteAuthorizedRes.result as boolean;
+            const isRegistered = poolData![2] as boolean;
 
-        for (const id of idsAuthorized) {
-            const poolData = results3.shift().result as any;
+            if (!isRegistered || !isVoteAuthorized) {
+                continue;
+            }
+
             pools.push({
-                id: id.toString(),
+                id: poolId.toString(),
                 poolAddress: poolData[0] as `0x${string}`,
                 chainId: Number(BigInt(poolData[1])),
-            })
+            });
         }
 
         for (const pool of pools) {
@@ -127,6 +136,7 @@ class SpectraCreateProposal extends CreateProposal {
                 transport: http(CHAIN_ID_TO_RPC[pool.chainId])
             });
 
+            // @ts-ignore
             const res = await client.multicall({
                 contracts: [
                     {
@@ -156,7 +166,6 @@ class SpectraCreateProposal extends CreateProposal {
                 pool.symbol = symbol;
             }
         }
-
 
         const responses: string[] = [
             "Blank"
