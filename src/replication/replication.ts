@@ -463,7 +463,20 @@ const replicateVote = async (space: string, proposalSD: Proposal, originalPropos
             // 0x7191045aDC32132Ec7766A77f0892797D8282F86 => fraxtal
             pks = [process.env.FRAX_DELEGATION_MAINNET, process.env.FRAX_DELEGATION_FRAXTAL];
         } else {
-            rpcProviderUrl = proposalSD.network === "1" ? "https://eth.public-rpc.com" : "https://rpc.ankr.com/bsc";
+            switch(proposalSD.network) {
+                case "1":
+                    rpcProviderUrl = "https://eth.public-rpc.com"
+                    break;
+                case "56":
+                    rpcProviderUrl = "https://rpc.ankr.com/bsc"
+                    break;
+                case "8453":
+                    rpcProviderUrl = "https://base.drpc.org"
+                    break;
+                default:
+                    await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", `Impossible to find network space for ${space}`);
+                    return;
+            }
             pks = [process.env.PK_BOT_REPLICATION];
         }
 
@@ -677,7 +690,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
             }
         } else {
             const originalProposal = await getOriginalProposal(proposal, space)
-            if(originalProposal === undefined) {
+            if (originalProposal === undefined) {
                 text += "❌ can't fetch original proposal \n"
             } else {
                 for (let i = 0; i < 10; i++) {
@@ -686,6 +699,10 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
                         replicateDone = true;
                         break;
                     }
+                }
+
+                if (!replicateDone) {
+                    await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", `Replication failed from ${space}-${proposal.id}, check logs`);
                 }
             }
 
