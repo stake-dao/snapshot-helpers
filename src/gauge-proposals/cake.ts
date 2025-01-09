@@ -8,7 +8,7 @@ import { CHAIN_ID_TO_RPC, etherscans } from "../../utils/constants";
 class CakeCreateProposal extends CreateProposal {
 
     protected canExecute(): boolean {
-        return moment().isoWeek() % 2 !== 0;
+        return moment().isoWeek() % 2 === 0;
     }
 
     protected getSpaceNetwork(): string {
