@@ -75,7 +75,7 @@ export abstract class CreateProposal {
             await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror CRV", `${e.error_description || e.message || ""}`);
         }
 
-        process.exitCode = 1;
+        process.exitCode = 0;
     }
 
     protected extractAddress(address: string): string {
