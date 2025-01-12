@@ -38,7 +38,7 @@ export class SafeTransactionHelper {
     private safeConfig: SafeConfig,
     private proposerConfig: ProposerConfig
   ) { 
-    this.init();
+    
   }
 
   async init() {
@@ -47,7 +47,6 @@ export class SafeTransactionHelper {
       this.proposerConfig.privateKey,
       this.provider
     );
-
     this.apiKit = new SafeApiKit({
       chainId: this.safeConfig.chainId,
     });
@@ -83,8 +82,12 @@ export class SafeTransactionHelper {
   async proposeTransactions(
     txDatas: MetaTransactionData[],
   ): Promise<SafeTransactionResult> {
+    const currentNonce = await this.protocolKit.getNonce()
     const safeTransaction = await this.protocolKit.createTransaction({
       transactions: txDatas,
+      options: {
+        nonce: currentNonce + 1
+      }
     });
     const safeTxHash =
       await this.protocolKit.getTransactionHash(safeTransaction);
@@ -95,7 +98,7 @@ export class SafeTransactionHelper {
       safeTransactionData: safeTransaction.data,
       safeTxHash,
       senderAddress,
-      senderSignature: null
+      senderSignature: null,
     });
 
     return {

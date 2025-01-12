@@ -827,6 +827,7 @@ const main = async () => {
             privateKey: process.env.SAFE_PROPOSER_PK
         }
     );
+    await safeHelper.init();
 
     const tenderlyConfig: TenderlyConfig = {
         accessKey: process.env.TENDERLY_ACCESS_KEY,
