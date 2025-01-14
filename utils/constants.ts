@@ -14,7 +14,7 @@ export const CHAIN_ID_TO_RPC = {
     137: "https://polygon-mainnet.g.alchemy.com/v2/" + process.env.WEB3_ALCHEMY_API_KEY
 }
 
-export const MS_ADDRESS = "0xF930EBBd05eF8b25B1797b9b2109DDC9B0d43063";
+export const MS_ADDRESS = "0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765";
 export const CURVE_GC = "0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB" as `0x${string}`;
 export const etherscans = [
     {
