@@ -4,6 +4,12 @@ import moment from "moment";
 import { sleep } from "../../utils/sleep";
 import { createPublicClient, http } from "viem";
 import { CHAIN_ID_TO_RPC, etherscans } from "../../utils/constants";
+import { BytesLike, ethers } from "ethers";
+import snapshot from "@snapshot-labs/snapshot.js";
+import * as dotenv from "dotenv";
+import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
+
+dotenv.config();
 
 class CakeCreateProposal extends CreateProposal {
 
@@ -107,6 +113,75 @@ class CakeCreateProposal extends CreateProposal {
 
         console.log("nb pancake gauge : ", response.length);
         return response;
+    }
+
+    protected async vote(receipt: any, gauges: string[]): Promise<void> {
+        // Wait 5 minutes to be in the voting window
+        await sleep(5 * 60 * 1000);
+
+        const gaugesToVote = [
+            {
+                gauge: "0xB1D54d76E2cB9425Ec9c018538cc531440b55dbB", // sdcake stable
+                weight: 90,
+            },
+            {
+                gauge: "0xa0bec9b22a22caD9D9813Ad861E331210FE6C589", // defiedge sdt-bnb
+                weight: 5,
+            },
+            {
+                gauge: "0x1dE329a4ADF92Fd61c24af18595e10843fc307e3", // SDT vault
+                weight: 5,
+            }
+        ];
+
+        const choice = {};
+        for (const gaugeToVote of gaugesToVote) {
+            for (let i = 0; i < gauges.length; i++) {
+                const gauge = gauges[i];
+                const startIndex = gauge.indexOf(this.SEP_START_ADDRESS);
+                if (startIndex === -1) {
+                    continue;
+                }
+
+                const endIndex = gauge.indexOf(this.SEP_DOT, startIndex);
+                if (endIndex === -1) {
+                    continue;
+                }
+
+                const startAddress = gauge.substring(startIndex + this.SEP_START_ADDRESS.length - 2, endIndex);
+                if (gaugeToVote.gauge.toLowerCase().indexOf(startAddress.toLowerCase()) === -1) {
+                    continue;
+                }
+
+                choice[(i + 1).toString()] = gaugeToVote.weight;
+                break;
+            }
+        }
+
+        if (Object.keys(choice).length !== gaugesToVote.length) {
+            console.log("Impossible to find target Pancake gauges");
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, `Create weekly proposal`, `Impossible to find target Pancake gauges`);
+            return;
+        }
+
+        const hub = process.env.HUB;
+
+        const client = new snapshot.Client712(hub);
+        const pk: BytesLike = process.env.VOTE_PRIVATE_KEY;
+        const web3 = new ethers.Wallet(pk);
+
+        try {
+            await client.vote(web3 as any, web3.address, {
+                space: 'sdcake.eth',
+                proposal: receipt.id as string,
+                type: 'weighted',
+                choice,
+            });
+        }
+        catch (e) {
+            console.log(e);
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, `Create weekly proposal`, `Can't vote for CAKE proposal - ${e.error_description || e.message || ""}`);
+        }
     }
 }
 
