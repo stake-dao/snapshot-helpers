@@ -55,6 +55,8 @@ class CakeCreateProposal extends CreateProposal {
             "0x8b626Acfb32CDad0d2F3b493Eb9928BbA1BbBcCa"
         ];
 
+        const positionManagerCache: any = {};
+        
         // Fetch blocknumbers
         const blockNumbers: Record<number, number> = {};
         for (const etherscan of etherscans) {
@@ -108,7 +110,32 @@ class CakeCreateProposal extends CreateProposal {
                 }
             }
 
-            response.push(gauge.pairName + " / " + this.getChainIdName(gauge.chainId) + " - " + this.extractAddress(gauge.address));
+            // Fetch position manager
+            if (!positionManagerCache[gauge.chainId]) {
+                const { data: positionManager } = await axios.get(`https://configs.pancakeswap.com/api/data/cached/positionManagers?chainId=${gauge.chainId}`);
+                positionManagerCache[gauge.chainId] = positionManager;
+            }
+
+            let positonManagerName = "";
+            const positionManager = positionManagerCache[gauge.chainId];
+            if (positionManager) {
+                for (const position of positionManager) {
+                    if (!position.idByManager || !position.vaultAddress || !position.name) {
+                        continue;
+                    }
+
+                    const vault_address = position.vaultAddress
+                    const id_by_manager = position.idByManager;
+                    const name = position.name;
+
+                    if (gauge.address.toLowerCase() === vault_address.toLowerCase()) {
+                        positonManagerName = ` ${name}#${id_by_manager}`;
+                        break;
+                    }
+                }
+            }
+
+            response.push(`${gauge.pairName} / ${this.getChainIdName(gauge.chainId)}${positonManagerName} - ${this.extractAddress(gauge.address)}`);
         }
 
         console.log("nb pancake gauge : ", response.length);

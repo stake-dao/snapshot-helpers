@@ -72,7 +72,7 @@ export abstract class CreateProposal {
         }
         catch (e) {
             console.error(e);
-            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror CRV", `${e.error_description || e.message || ""}`);
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `${e.error_description || e.message || ""}`);
         }
 
         process.exitCode = 0;
