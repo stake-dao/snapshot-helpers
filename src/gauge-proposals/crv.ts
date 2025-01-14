@@ -9,6 +9,9 @@ import moment from "moment";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { BytesLike, ethers } from "ethers";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 class CrvCreateProposal extends CreateProposal {
 
