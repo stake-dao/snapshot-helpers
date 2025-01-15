@@ -487,13 +487,18 @@ const replicateVote = async (space: string, proposalSD: Proposal, originalPropos
             const signer = new Wallet(pk, provider);
             const address = signer.address;
 
+            let symbolReason = proposalSD.space.symbol.replace("sd", "");
+            if (space === "sdapw.eth") {
+                symbolReason = "SPECTRA";
+            }
+
             await client.vote(signer as any, address, {
                 space: originalProposal.space.id,
                 proposal: originalProposal.id,
                 type: originalProposal.type as any,
                 choice,
                 metadata: JSON.stringify({}),
-                reason: 'Stake DAO ' + proposalSD.space.symbol.replace("sd", "") + ' Liquid Locker'
+                reason: `Stake DAO ${symbolReason} Liquid Locker`
             });
         }
 
