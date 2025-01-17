@@ -82,11 +82,11 @@ export class SafeTransactionHelper {
   async proposeTransactions(
     txDatas: MetaTransactionData[],
   ): Promise<SafeTransactionResult> {
-    const currentNonce = await this.protocolKit.getNonce()
+    const nextNonce = await this.apiKit.getNextNonce(this.safeConfig.safeAddress);
     const safeTransaction = await this.protocolKit.createTransaction({
       transactions: txDatas,
       options: {
-        nonce: currentNonce + 1
+        nonce: nextNonce
       }
     });
     const safeTxHash =
