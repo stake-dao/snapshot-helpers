@@ -56,7 +56,7 @@ export abstract class CreateProposal {
                 type: "weighted",
                 title: `Gauge vote ${label} - ${day}/${month}/${year} - ${dayEnd}/${monthEnd}/${yearEnd}`,
                 body: `Gauge vote for ${label} inflation allocation.`,
-                discussion: "https://votemarket.stakedao.org/votes",
+                discussion: "",
                 choices: gauges,
                 start: startTimestamp,
                 end: endTimestamp,
