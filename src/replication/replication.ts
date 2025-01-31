@@ -16,6 +16,9 @@ import * as chains from 'viem/chains'
 import { ANGLE_ONCHAIN_SUBGRAPH_URL, CHAIN_ID_TO_RPC, MS_ADDRESS } from "../../utils/constants";
 import { SafeTransactionHelper, TenderlyConfig } from "../../utils/safe-proposer/safe-transaction";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
+import { votesFromSafeModule } from "./voterSafeModule";
+import { IProposalMessageForOperationChannel } from "./interfaces/IProposalMessageForOperationChannel";
+import { CURVE_OWNERSHIP_VOTER, CURVE_PARAMETER_VOTER } from "./addresses";
 
 dotenv.config();
 
@@ -510,14 +513,6 @@ const replicateVote = async (space: string, proposalSD: Proposal, originalPropos
     }
 }
 
-interface IProposalMessageForOperationChannel {
-    text: string;
-    deadline: number;
-    payload: `0x${string}` | undefined;
-    voter: string | undefined;
-    isOnchainProposal: boolean;
-}
-
 const getProposalMessageForOperationChannel = async (proposal: Proposal, token: string, space: string): Promise<IProposalMessageForOperationChannel | undefined> => {
     // Skip if proposal is our gauge vote and if it's not YFI (beacause YFI is 100% on snapshot)
     if(space !== "sdyfi.eth" && proposal.title.indexOf("Gauge vote") > -1) {
@@ -555,6 +550,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
 	const total = proposal.scores.reduce((acc:number, score:number) => acc + score, 0);
     let payload: `0x${string}` | undefined = undefined;
     let voter: string | undefined = undefined;
+    let args: any[] = [];
 
 	if (total === 0) {
 		// Nothing to replicate
@@ -613,9 +609,9 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
                 } else {
                     let votingAddress = undefined;
                     if (link.value.includes("ownership")) {
-                        votingAddress = "0xE478de485ad2fe566d49342Cbd03E49ed7DB3356"
+                        votingAddress = CURVE_OWNERSHIP_VOTER;
                     } else if (link.value.includes("parameter")) {
-                        votingAddress = "0xBCfF8B0b9419b9A88c44546519b1e909cF330399"
+                        votingAddress = CURVE_PARAMETER_VOTER;
                     }
 
                     // Get PCT_BASE
@@ -630,10 +626,11 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
                         const yeaBN = Math.floor(yea / totalVotes * pctBase);
                         const nayBN = pctBase - yeaBN;
 
+                        args = [BigInt(voteId), BigInt(yeaBN), BigInt(nayBN), votingAddress];
                         payload = encodeFunctionData({
                             abi: CurveVoterABI,
                             functionName: 'votePct',
-                            args: [BigInt(voteId), BigInt(yeaBN), BigInt(nayBN), votingAddress]
+                            args,
                         });
 
                         voter = CURVE_VOTER;
@@ -734,6 +731,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
         text,
         deadline,
         payload,
+        args,
         voter,
         isOnchainProposal
     };
@@ -858,10 +856,28 @@ const main = async () => {
         }
     }
 
-    // Push the vote in MS
+    // Push votes
     if (onchainVotes.length > 0) {
         try {
-            const txDatas = onchainVotes.map((onchainVote) => {
+            const tx = await votesFromSafeModule(onchainVotes);
+            if (tx === undefined) {
+                // error
+                await sendTelegramMsgInSDGovChannel("Error when sending votes from safe module, check logs @chago0x @pi3rrem");
+            } else if (tx !== null) {
+                let message = "";
+                if (tx.status === "success") {
+                    message = `✅ Vote sent from safe module\n`;
+                    message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
+                } else {
+                    message = `❌ Vote sent from safe module but the tx reverted\n`;
+                    message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
+                }
+
+                message += "@chago0x @pi3rrem";
+
+                await sendTelegramMsgInSDGovChannel(message);
+            }
+            /*const txDatas = onchainVotes.map((onchainVote) => {
                 return {
                     data: onchainVote.payload,
                     to: onchainVote.voter,
@@ -887,7 +903,7 @@ const main = async () => {
 
             message += `Tx safe url : ${safeTransaction.url}\n`;
             message += "@chago0x @pi3rrem";
-            await sendTelegramMsgInSDGovChannel(message);
+            await sendTelegramMsgInSDGovChannel(message);*/
         }
         catch (e) {
             await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", e.error_description || e.message || "");
