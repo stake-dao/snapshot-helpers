@@ -822,24 +822,6 @@ const main = async () => {
     }
    
     // Check closed
-    const safeHelper = new SafeTransactionHelper(
-        {
-            chainId: BigInt(1),
-            rpcUrl: CHAIN_ID_TO_RPC[1],
-            safeAddress: MS_ADDRESS,
-        },
-        {
-            privateKey: process.env.SAFE_PROPOSER_PK
-        }
-    );
-    await safeHelper.init();
-
-    const tenderlyConfig: TenderlyConfig = {
-        accessKey: process.env.TENDERLY_ACCESS_KEY,
-        project: process.env.TENDERLY_PROJECT_SLUG,
-        user: process.env.TENDERLY_ACCOUNT_SLUG,
-    };
-
     const onchainVotes: IProposalMessageForOperationChannel[] = [];
 
     for (const space of ens) {
@@ -861,6 +843,24 @@ const main = async () => {
     // Push the vote in MS
     if (onchainVotes.length > 0) {
         try {
+            const safeHelper = new SafeTransactionHelper(
+                {
+                    chainId: BigInt(1),
+                    rpcUrl: CHAIN_ID_TO_RPC[1],
+                    safeAddress: MS_ADDRESS,
+                },
+                {
+                    privateKey: process.env.SAFE_PROPOSER_PK
+                }
+            );
+            await safeHelper.init();
+        
+            const tenderlyConfig: TenderlyConfig = {
+                accessKey: process.env.TENDERLY_ACCESS_KEY,
+                project: process.env.TENDERLY_PROJECT_SLUG,
+                user: process.env.TENDERLY_ACCOUNT_SLUG,
+            };
+            
             const txDatas = onchainVotes.map((onchainVote) => {
                 return {
                     data: onchainVote.payload,
