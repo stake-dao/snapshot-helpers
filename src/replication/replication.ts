@@ -820,24 +820,6 @@ const main = async () => {
     }
    
     // Check closed
-    const safeHelper = new SafeTransactionHelper(
-        {
-            chainId: BigInt(1),
-            rpcUrl: CHAIN_ID_TO_RPC[1],
-            safeAddress: MS_ADDRESS,
-        },
-        {
-            privateKey: process.env.SAFE_PROPOSER_PK
-        }
-    );
-    await safeHelper.init();
-
-    const tenderlyConfig: TenderlyConfig = {
-        accessKey: process.env.TENDERLY_ACCESS_KEY,
-        project: process.env.TENDERLY_PROJECT_SLUG,
-        user: process.env.TENDERLY_ACCOUNT_SLUG,
-    };
-
     const onchainVotes: IProposalMessageForOperationChannel[] = [];
 
     for (const space of ens) {
@@ -866,10 +848,12 @@ const main = async () => {
             } else if (tx !== null) {
                 let message = "";
                 if (tx.status === "success") {
-                    message = `✅ Vote sent from safe module\n`;
+                    let message = `✅ Vote${onchainVotes.length > 1 ? "s" : ""}`;
+                    message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module\n`;
                     message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
                 } else {
-                    message = `❌ Vote sent from safe module but the tx reverted\n`;
+                    let message = `❌ Vote${onchainVotes.length > 1 ? "s" : ""}`;
+                    message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module but the tx reverted\n`;
                     message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
                 }
 
@@ -877,33 +861,6 @@ const main = async () => {
 
                 await sendTelegramMsgInSDGovChannel(message);
             }
-            /*const txDatas = onchainVotes.map((onchainVote) => {
-                return {
-                    data: onchainVote.payload,
-                    to: onchainVote.voter,
-                    value: '0',
-                }
-            });
-            const [simulations, safeTransaction] = await Promise.all([
-                safeHelper.simulateTransactions(
-                    txDatas,
-                    tenderlyConfig
-                ),
-                safeHelper.proposeTransactions(txDatas)
-            ]);
-
-            // Send tg message
-            let message = "";
-            for(let i = 0; i < onchainVotes.length; i++) {
-                message += `${onchainVotes[i].text}`;
-                message += `Voter : ${onchainVotes[i].voter}\n`;
-                message += `Payload : ${onchainVotes[i].payload}\n`;
-                message += `Simulation : ${simulations.urls[i]}\n\n`;
-            }
-
-            message += `Tx safe url : ${safeTransaction.url}\n`;
-            message += "@chago0x @pi3rrem";
-            await sendTelegramMsgInSDGovChannel(message);*/
         }
         catch (e) {
             await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", e.error_description || e.message || "");
