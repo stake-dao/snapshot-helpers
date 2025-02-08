@@ -848,11 +848,11 @@ const main = async () => {
             } else if (tx !== null) {
                 let message = "";
                 if (tx.status === "success") {
-                    let message = `✅ Vote${onchainVotes.length > 1 ? "s" : ""}`;
+                    message = `✅ Vote${onchainVotes.length > 1 ? "s" : ""}`;
                     message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module\n`;
                     message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
                 } else {
-                    let message = `❌ Vote${onchainVotes.length > 1 ? "s" : ""}`;
+                    message = `❌ Vote${onchainVotes.length > 1 ? "s" : ""}`;
                     message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module but the tx reverted\n`;
                     message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
                 }
