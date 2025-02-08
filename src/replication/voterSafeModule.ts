@@ -71,10 +71,11 @@ export const votesFromSafeModule = async (onchainVotes: IProposalMessageForOpera
             publicClient.estimateFeesPerGas()
         ])
 
-        // Add 15%
-        const increasedMaxFeePerGas = maxFeePerGas * 115n / 100n;
-        const increasedMaxPriorityFeePerGas = maxPriorityFeePerGas * 115n / 100n;
-        const increasedGasLimit = (gasLimit * 115n) / 100n;
+        // Add 30%
+        const increase = 130n;
+        const increasedMaxFeePerGas = maxFeePerGas * increase / 100n;
+        const increasedMaxPriorityFeePerGas = maxPriorityFeePerGas * increase / 100n;
+        const increasedGasLimit = (gasLimit * increase) / 100n;
 
         const hash = await walletClient.writeContract({
             account,
