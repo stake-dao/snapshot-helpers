@@ -13,6 +13,7 @@ export abstract class CreateProposal {
 
     protected readonly SEP_DOT = "…";
     protected readonly SEP_START_ADDRESS = "- 0x";
+    private readonly MAX_CHOICES = 500;
 
     public async job() {
         try {
@@ -33,6 +34,11 @@ export abstract class CreateProposal {
 
             if (gauges.length === 0) {
                 console.log("Zero gauge fetched");
+                return;
+            }
+
+            if (gauges.length > this.MAX_CHOICES) {
+                await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `Space : ${this.getSpace()}\nMore than ${this.MAX_CHOICES} choices (got ${gauges.length} choices)`);
                 return;
             }
 
@@ -72,7 +78,7 @@ export abstract class CreateProposal {
         }
         catch (e) {
             console.error(e);
-            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `${e.error_description || e.message || ""}`);
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `Space : ${this.getSpace()}\n${e.error_description || e.message || ""}`);
         }
 
         process.exitCode = 0;
