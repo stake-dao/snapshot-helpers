@@ -13,7 +13,7 @@ export abstract class CreateProposal {
 
     protected readonly SEP_DOT = "…";
     protected readonly SEP_START_ADDRESS = "- 0x";
-    private readonly MAX_CHOICES = 500;
+    private readonly MAX_CHOICES = 1000;
 
     public async job() {
         try {
