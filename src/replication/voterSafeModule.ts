@@ -88,7 +88,7 @@ export const votesFromSafeModule = async (onchainVotes: IProposalMessageForOpera
             gas: increasedGasLimit,
             chain: mainnet
         });
-        const receipt = await publicClient.waitForTransactionReceipt({ hash });
+        const receipt = await publicClient.waitForTransactionReceipt({ hash, retryCount: 100 });
 
         return receipt;
     }
