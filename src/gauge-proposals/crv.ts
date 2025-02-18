@@ -129,23 +129,25 @@ class CrvCreateProposal extends CreateProposal {
                 continue;
             }
 
+            const gaugeRoot = gaugesMap[key].rootGauge || gaugesMap[key].gauge;
+
             calls.push({
                 address: CURVE_GC,
                 abi: gcAbi,
                 functionName: 'gauge_types',
-                args: [gaugesMap[key].gauge]
+                args: [gaugeRoot]
             });
             calls.push({
                 address: CURVE_GC,
                 abi: gcAbi,
                 functionName: 'get_gauge_weight',
-                args: [gaugesMap[key].gauge]
+                args: [gaugeRoot]
             });
             callsHistoricalWeights.push({
                 address: CURVE_GC,
                 abi: gcAbi,
                 functionName: 'get_gauge_weight',
-                args: [gaugesMap[key].gauge]
+                args: [gaugeRoot]
             });
         }
 
@@ -204,7 +206,8 @@ class CrvCreateProposal extends CreateProposal {
                     try {
                         const etherscan = etherscans.find((etherscan) => etherscan.chain === chains.mainnet);
                         if (etherscan) {
-                            const { data: resp } = await axios.get(`https://${etherscan.url}/api?module=contract&action=getcontractcreation&contractaddresses=${gaugesMap[key].gauge}&apikey=${etherscan.apiKey}`)
+                            const gaugeRoot = gaugesMap[key].rootGauge || gaugesMap[key].gauge;
+                            const { data: resp } = await axios.get(`https://${etherscan.url}/api?module=contract&action=getcontractcreation&contractaddresses=${gaugeRoot}&apikey=${etherscan.apiKey}`)
                             // Rate limite
                             await sleep(200)
                             if (resp.result?.length > 0) {
@@ -217,7 +220,7 @@ class CrvCreateProposal extends CreateProposal {
                                     const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
                                     const isOldTwoYears = (now - createdTimestamp) >= (((1 * 365)) * 86400)
                                     if (isOldTwoYears) {
-                                        console.log("gauge ", gaugesMap[key].gauge, " is 2 years old");
+                                        console.log("gauge ", gaugesMap[key].gauge, " is too old");
                                         // Check if previous weights are equals to 0 too
                                         if (nbHistoricalWeightsToZero === nbCheck) {
                                             // All weights are 0
@@ -231,7 +234,7 @@ class CrvCreateProposal extends CreateProposal {
 
                     }
                     catch (e) {
-
+                        console.log(gaugesMap[key].rootGauge || gaugesMap[key].gauge, e)
                     }
                 }
             }
