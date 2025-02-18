@@ -608,9 +608,9 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
                     text += "❌ Can't extract vote id\n"
                 } else {
                     let votingAddress = undefined;
-                    if (link.value.includes("ownership")) {
+                    if (link.value.toLowerCase().includes("ownership")) {
                         votingAddress = CURVE_OWNERSHIP_VOTER;
-                    } else if (link.value.includes("parameter")) {
+                    } else if (link.value.toLowerCase().includes("parameter")) {
                         votingAddress = CURVE_PARAMETER_VOTER;
                     }
 
