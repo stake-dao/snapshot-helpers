@@ -6,7 +6,6 @@ import moment from "moment";
 import * as momentTimezone from "moment-timezone";
 import * as chains from 'viem/chains'
 import * as dotenv from "dotenv";
-
 dotenv.config();
 
 export abstract class CreateProposal {

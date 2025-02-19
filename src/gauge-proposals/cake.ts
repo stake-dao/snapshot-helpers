@@ -8,6 +8,7 @@ import { BytesLike, ethers } from "ethers";
 import snapshot from "@snapshot-labs/snapshot.js";
 import * as dotenv from "dotenv";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
+import { mainnet } from "viem/chains";
 
 dotenv.config();
 
@@ -39,7 +40,7 @@ class CakeCreateProposal extends CreateProposal {
 
     protected async getGauges(snapshotBlock: number): Promise<string[]> {
         const data = await axios.get(`https://pancakeswap.finance/api/gauges/getAllGauges?inCap=true&testnet=`);
-        const gauges = data.data.data;
+        const gauges = data.data.data.filter((d: any) => d.address !== undefined);
 
         const response: string[] = [];
 
@@ -70,6 +71,8 @@ class CakeCreateProposal extends CreateProposal {
         }
 
         const now = moment().unix();
+        const etherscan = etherscans.find((e) => e.chain.id === mainnet.id);
+        let totalSkipped = 0;
 
         for (const gauge of gauges) {
             const isBlacklisted = blacklists.find((addr) => addr.toLowerCase() === gauge.address.toLowerCase()) !== undefined;
@@ -78,37 +81,26 @@ class CakeCreateProposal extends CreateProposal {
             }
 
             // Check if older than one year and weight = 0
-            const etherscan = etherscans.find((e) => e.chain.id === gauge.chainId);
-            if (etherscan && gauge.weight === '0') {
+            /*if (etherscan && gauge.weight === '0') {
                 try {
-                    const { data: resp } = await axios.get(`https://${etherscan.url}/api?module=contract&action=getcontractcreation&contractaddresses=${gauge.address}&apikey=${etherscan.apiKey}`)
+                    const url = `https://api.etherscan.io/v2/api?chainid=${gauge.chainId}&module=contract&action=getcontractcreation&contractaddresses=${gauge.address}&apikey=${etherscan.apiKey}`;
+                    const {data:resp} = await axios.get(url);
                     // Rate limite
                     await sleep(200)
                     if (resp.result?.length > 0) {
-                        const txHash = resp.result[0].txHash;
-
-                        const client = createPublicClient({
-                            chain: etherscan.chain,
-                            transport: http(CHAIN_ID_TO_RPC[etherscan.chain.id])
-                        });
-
-                        const transaction = await client.getTransactionReceipt({ hash: txHash });
-                        if (transaction) {
-                            // On BSC chain, 1 block every 3 seconds
-                            const diffBlocks = blockNumbers[etherscan.chain.id] - Number(transaction.blockNumber)
-                            const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
-                            const isOldOneYear = (now - createdTimestamp) >= ((30 * 3.5) * 86400)
-                            if (isOldOneYear) {
-                                // Skip
-                                continue;
-                            }
+                        const createdTimestamp = parseInt(resp.result[0].timestamp);
+                        const isOldOneYear = (now - createdTimestamp) >= ((30 * 12) * 86400)
+                        if (isOldOneYear) {
+                            // Skip
+                            totalSkipped++;
+                            continue;
                         }
                     }
                 }
                 catch (e) {
 
                 }
-            }
+            }*/
 
             // Fetch position manager
             if (!positionManagerCache[gauge.chainId]) {

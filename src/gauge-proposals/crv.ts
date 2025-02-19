@@ -175,6 +175,9 @@ class CrvCreateProposal extends CreateProposal {
             }
         }
 
+        const etherscan = etherscans.find((etherscan) => etherscan.chain === chains.mainnet);
+        const now = moment().unix();
+
         const response: string[] = [];
         for (const key of gaugesKeys) {
             if (gaugesMap[key].is_killed) {
@@ -203,31 +206,21 @@ class CrvCreateProposal extends CreateProposal {
                 const gw = parseFloat(formatUnits(gaugeWeight?.result, 18));
                 if (gw === 0) {
                     // Check age
-                    try {
-                        const etherscan = etherscans.find((etherscan) => etherscan.chain === chains.mainnet);
+                    /*try {
+                        
                         if (etherscan) {
                             const gaugeRoot = gaugesMap[key].rootGauge || gaugesMap[key].gauge;
-                            const { data: resp } = await axios.get(`https://${etherscan.url}/api?module=contract&action=getcontractcreation&contractaddresses=${gaugeRoot}&apikey=${etherscan.apiKey}`)
+
+                            const url = `https://api.etherscan.io/v2/api?chainid=1&module=contract&action=getcontractcreation&contractaddresses=${gaugeRoot}&apikey=${etherscan.apiKey}`;
+                            const { data: resp } = await axios.get(url);
                             // Rate limite
                             await sleep(200)
                             if (resp.result?.length > 0) {
-                                const txHash = resp.result[0].txHash;
-                                const transaction = await publicClient.getTransactionReceipt({ hash: txHash });
-                                if (transaction) {
-                                    // On BSC chain, 1 block every 3 seconds
-                                    const diffBlocks = snapshotBlock - Number(transaction.blockNumber)
-                                    const now = moment().unix();
-                                    const createdTimestamp = now - (Number(diffBlocks) * etherscan.blockPerSec)
-                                    const isOldTwoYears = (now - createdTimestamp) >= (((1 * 365)) * 86400)
-                                    if (isOldTwoYears) {
-                                        console.log("gauge ", gaugesMap[key].gauge, " is too old");
-                                        // Check if previous weights are equals to 0 too
-                                        if (nbHistoricalWeightsToZero === nbCheck) {
-                                            // All weights are 0
-                                            console.log("skip curve gauge", key);
-                                            continue;
-                                        }
-                                    }
+                                const createdTimestamp = parseInt(resp.result[0].timestamp);
+                                const isOldTwoYears = (now - createdTimestamp) >= (((2 * 365)) * 86400)
+                                if (isOldTwoYears) {
+                                    // Skip
+                                    continue;
                                 }
                             }
                         }
@@ -235,7 +228,7 @@ class CrvCreateProposal extends CreateProposal {
                     }
                     catch (e) {
                         console.log(gaugesMap[key].rootGauge || gaugesMap[key].gauge, e)
-                    }
+                    }*/
                 }
             }
 
