@@ -111,10 +111,12 @@ const handleOnchainAngleSnaphsot = async (space: string) => {
     sdResult = filterGaugesProposals(sdResult, space);
 
     const now = Math.floor(Date.now() / 1000);
+
     let subgraphResults: any = await request(ANGLE_ONCHAIN_SUBGRAPH_URL, ANGLE_ONCHAIN_QUERY, {
         deadlineTimestamp: now,
         snapshotTimestamp: now,
     });
+
 
     const { data: angleProposals } = await axios.get("https://api.angle.money/v1/governance?chainId=1");
 
@@ -122,8 +124,15 @@ const handleOnchainAngleSnaphsot = async (space: string) => {
 
         // Check if cancelled
         const angleProposalKey = Object.keys(angleProposals.proposalsInfo).find((proposalId: string) => p.id.toLowerCase() === proposalId.toLowerCase());
+        
         if (angleProposalKey) {
             const angleProposal = angleProposals.proposalsInfo[angleProposalKey];
+
+            // TODO : Delete, raw fix due to a subgraph non sync
+            if (angleProposalKey == "0xd99b87995eb80a52da1ad6684a0cb746b40cefd74e536f9478785dc3c29c3dcc") {
+                return null;
+            }
+            
             if (angleProposal.state === 2) {
                 return null;
             }
