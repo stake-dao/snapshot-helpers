@@ -2,7 +2,7 @@ export const SDCRVGOV = "sdcrv-gov.eth";
 
 export const SPACES: any = {
     "frax.eth": "sdfxs.eth",
-    "anglegovernance.eth": "sdangle.eth",
+    //"anglegovernance.eth": "sdangle.eth",
     "balancer.eth": "sdbal.eth",
     "spectradao.eth": "sdapw.eth",
     "veyfi.eth": "sdyfi.eth",
