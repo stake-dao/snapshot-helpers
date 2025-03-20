@@ -16,7 +16,7 @@ import * as chains from 'viem/chains'
 import { ANGLE_ONCHAIN_SUBGRAPH_URL, CHAIN_ID_TO_RPC, MS_ADDRESS } from "../../utils/constants";
 import { SafeTransactionHelper, TenderlyConfig } from "../../utils/safe-proposer/safe-transaction";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
-import { votesFromSafeModule } from "./voterSafeModule";
+import { checkCurveVotes, votesFromSafeModule } from "./voterSafeModule";
 import { IProposalMessageForOperationChannel } from "./interfaces/IProposalMessageForOperationChannel";
 import { CURVE_OWNERSHIP_VOTER, CURVE_PARAMETER_VOTER } from "./addresses";
 
@@ -846,8 +846,9 @@ const main = async () => {
                 // error
                 await sendTelegramMsgInSDGovChannel("Error when sending votes from safe module, check logs @chago0x @pi3rrem");
             } else if (tx !== null) {
+                const votesOk = await checkCurveVotes(onchainVotes);
                 let message = "";
-                if (tx.status === "success") {
+                if (tx.status === "success" && votesOk) {
                     message = `✅ Vote${onchainVotes.length > 1 ? "s" : ""}`;
                     message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module\n`;
                     message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
