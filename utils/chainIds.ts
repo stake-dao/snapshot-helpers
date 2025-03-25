@@ -147,5 +147,6 @@ export const CHAIN_IDS = {
     "11297108109": "palm",
     "383414847825": "zeniq",
     "836542336838601": "curio",
-    "146": "sonic"
+    "146": "sonic",
+    "80094": "bera"
 }
