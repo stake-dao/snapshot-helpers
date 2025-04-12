@@ -4,11 +4,14 @@ import { CURVE_OWNERSHIP_VOTER, CURVE_PARAMETER_VOTER } from "./addresses";
 import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { CHAIN_ID_TO_RPC } from "../../utils/constants";
+import { exit } from "process";
 
 const VOTER_CURVE_SAFE_MODULE = "0x665d334388012d17F1d197dE72b7b708ffCCB67d" as `0x${string}`;
 
 type VoteParam = { _voteId: bigint; _yeaPct: bigint; _nayPct: bigint; _voteType: number; }
 type VoteParams = readonly VoteParam[];
+
+const MIN_GAS_LIMIT = BigInt("2000000");
 
 const abi = parseAbi([
     'function votes((uint256 _voteId, uint256 _yeaPct, uint256 _nayPct, uint8 _voteType)[] _votes) external',
@@ -77,7 +80,11 @@ export const votesFromSafeModule = async (onchainVotes: IProposalMessageForOpera
         const increase = 150n;
         const increasedMaxFeePerGas = maxFeePerGas * increase / 100n;
         const increasedMaxPriorityFeePerGas = maxPriorityFeePerGas * increase / 100n;
-        const increasedGasLimit = (gasLimit * increase) / 100n;
+        let increasedGasLimit = (gasLimit * increase) / 100n;
+
+        if(increasedGasLimit < MIN_GAS_LIMIT) {
+            increasedGasLimit = MIN_GAS_LIMIT;
+        }
 
         const hash = await walletClient.writeContract({
             account,
