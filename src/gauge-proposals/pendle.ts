@@ -2,7 +2,7 @@ import { CreateProposal } from "./createProposal";
 import axios from "axios";
 import moment from "moment";
 import { sleep } from "../../utils/sleep";
-import { CHAIN_IDS } from "../../utils/chainIds";
+import { exit } from "process";
 
 class PendleCreateProposal extends CreateProposal {
 
@@ -35,7 +35,9 @@ class PendleCreateProposal extends CreateProposal {
         const SIZE = 100;
         const response: string[] = [];
 
-        for (const chainId of Object.keys(CHAIN_IDS)) {
+        const {data: {chainIds}} = await axios.get("https://api-v2.pendle.finance/core/v1/chains")
+
+        for (const chainId of chainIds) {
             let run = true;
             let skip = 0;
 
