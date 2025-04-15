@@ -48,7 +48,7 @@ const spaces: Record<string, string> = {
     "sdcrv.eth": "CRV",
     "sdcrv-gov.eth": "CRV",
     "sdbal.eth": "BAL",
-    "sdapw.eth": "Spectra",
+    "sdspectra.eth": "Spectra",
     "sdyfi.eth": "YFI",
     "sdpendle.eth": "Pendle",
     "sdmav.eth": "MAV",
@@ -63,7 +63,7 @@ var originSpaces: Record<string, string> = {
     "sdcrv.eth": "curve.eth",
     "sdcrv-gov.eth": "curve.eth",
     "sdbal.eth": "balancer.eth",
-    "sdapw.eth": "spectradao.eth",
+    "sdspectra.eth": "spectradao.eth",
     "sdyfi.eth": "veyfi.eth",
     "sdpendle.eth": "sdpendle.eth",
     "sdmav.eth": "mavxyz.eth",
@@ -491,7 +491,7 @@ const replicateVote = async (space: string, proposalSD: Proposal, originalPropos
             const address = signer.address;
 
             let symbolReason = proposalSD.space.symbol.replace("sd", "");
-            if (space === "sdapw.eth") {
+            if (space === "sdspectra.eth") {
                 symbolReason = "SPECTRA";
             }
 
