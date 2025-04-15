@@ -11,7 +11,7 @@ class SpectraCreateProposal extends CreateProposal {
     }
 
     protected getSpaceNetwork(): string {
-        return "ethereum";
+        return "base";
     }
 
     protected getEndProposalTimestamp(startProposalTimestamp: moment.Moment): moment.Moment {
@@ -23,11 +23,11 @@ class SpectraCreateProposal extends CreateProposal {
     }
 
     protected getChainId(): string {
-        return "1";
+        return "8453";
     }
 
     protected getSpace(): string {
-        return "sdapw.eth";
+        return "sdspectra.eth";
     }
 
     protected async getGauges(snapshotBlock: number): Promise<string[]> {
