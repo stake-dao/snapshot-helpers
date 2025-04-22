@@ -88,14 +88,8 @@ export const createProposal = async ({ payload }: any) => {
                 });
                 payload.snapshot = await getMainnetSnapshotBlock(publicClient, payload);
                 break;
-            } case "spectradao.eth": {
-                const publicClient = createPublicClient({
-                    chain: chains.base,
-                    transport: http()
-                });
-                payload.snapshot = await getMainnetSnapshotBlock(publicClient, payload);
-                break;
-            } default:
+            } 
+            default:
                 break;
         }
 
