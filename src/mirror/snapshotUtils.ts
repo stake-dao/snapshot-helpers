@@ -20,6 +20,33 @@ query Proposal($author: String) {
   }
 `;
 
+export const QUERY_BY_ID = gql`
+query Proposal($id: String) {
+    proposals(
+      where: {
+        id: $id
+      }
+    ) {
+      id
+      title
+      body
+      choices
+      start
+      end
+      snapshot
+      state
+      author
+      created
+      network
+      space {
+          id
+          name
+          symbol
+      }
+    }
+  }
+`;
+
 export const fetchNbActiveProtocolProposal = async (author: string) => {
     const result = (await request(`${SNAPSHOT_URL}/graphql`, QUERY_ACTIVE, {
         author

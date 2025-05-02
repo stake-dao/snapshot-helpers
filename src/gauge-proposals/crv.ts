@@ -43,7 +43,7 @@ class CrvCreateProposal extends CreateProposal {
         return "sdcrv.eth";
     }
 
-    protected async vote(receipt: any, gauges: string[]): Promise<void> {
+    protected async vote(receipt: any, gauges: string[], waitSleep?: boolean): Promise<void> {
         // Wait 5 minutes to be in the voting window
         await sleep(5 * 60 * 1000);
 

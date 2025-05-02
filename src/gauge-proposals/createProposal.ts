@@ -6,6 +6,9 @@ import moment from "moment";
 import * as momentTimezone from "moment-timezone";
 import * as chains from 'viem/chains'
 import * as dotenv from "dotenv";
+import request from "graphql-request";
+import { SNAPSHOT_URL } from "../mirror/request";
+import { QUERY_BY_ID } from "../mirror/snapshotUtils";
 dotenv.config();
 
 export abstract class CreateProposal {
@@ -193,7 +196,16 @@ export abstract class CreateProposal {
      * For the auto voter, vote based on the proposal id
      * @param receipt Proposal created
      */
-    protected async vote(receipt: any, gauges: string[]): Promise<void> {
+    protected async vote(receipt: any, gauges: string[], waitSleep?: boolean): Promise<void> {
         return Promise.resolve();
+    }
+
+    private async manualVote(proposalId: string): Promise<void> {
+        const result = (await request(`${SNAPSHOT_URL}/graphql`, QUERY_BY_ID, {
+            id: proposalId
+        })) as any;
+
+        const proposal = result.proposals[0];
+        await this.vote(proposal, proposal.choices, false);
     }
 }
