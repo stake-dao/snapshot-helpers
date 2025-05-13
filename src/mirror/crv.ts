@@ -45,7 +45,9 @@ const mirrorCrv = async () => {
         };
 
         // Remove urls i nthe title
-        proposal.title = removeUrls(proposal.title);
+        if (proposal.title) {
+            proposal.title = removeUrls(proposal.title);
+        }
 
         console.log(`Handle proposal :  ${proposal.title}`);
         console.log(`Start proposal :  ${proposal.start}`);
