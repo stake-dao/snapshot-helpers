@@ -2,7 +2,7 @@ import { createPublicClient, formatUnits, http, parseAbi } from "viem";
 import { CreateProposal } from "./createProposal";
 import axios from "axios";
 import * as chains from 'viem/chains'
-import { CHAIN_ID_TO_RPC, CURVE_GC, etherscans } from "../../utils/constants";
+import { CHAIN_ID_TO_RPC, CURVE_API, CURVE_GC, etherscans } from "../../utils/constants";
 import * as lodhash from 'lodash';
 import { sleep } from "../../utils/sleep";
 import moment from "moment";
@@ -108,7 +108,7 @@ class CrvCreateProposal extends CreateProposal {
     };
 
     protected async getGauges(snapshotBlock: number): Promise<string[]> {
-        const data = await axios.get("https://api.curve.fi/api/getAllGauges");
+        const data = await axios.get(`${CURVE_API}/api/getAllGauges`);
         const gaugesMap = data.data.data;
 
         const publicClient = createPublicClient({

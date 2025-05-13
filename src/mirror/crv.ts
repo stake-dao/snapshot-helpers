@@ -56,7 +56,7 @@ const mirrorCrv = async () => {
  * @returns last 1000 proposals
  */
 const fetchCurveProposalWithCurveMonitor = async (): Promise<CurveMonitorProposal[]> => {
-    const { data: {proposals} } = await axios.get("https://prices.curve.fi/v1/dao/proposals?pagination=100");
+    const { data: {proposals} } = await axios.get("https://prices.curve.finance/v1/dao/proposals?pagination=100");
 
     const results: CurveMonitorProposal[] = [];
     for (const proposal of proposals) {

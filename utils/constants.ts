@@ -37,3 +37,5 @@ export const etherscans = [
         blockPerSec: 0.25
     }
 ];
+
+export const CURVE_API = "https://d3dl9x5bpp6us7.cloudfront.net"
