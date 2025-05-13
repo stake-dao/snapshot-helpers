@@ -44,12 +44,19 @@ const mirrorCrv = async () => {
             metadata: { url: link },
         };
 
+        // Remove urls i nthe title
+        proposal.title = removeUrls(proposal.title);
+
         console.log(`Handle proposal :  ${proposal.title}`);
         console.log(`Start proposal :  ${proposal.start}`);
         console.log(`End proposal :  ${proposal.end}`);
         await createProposal({ payload: proposal });
     }
 }
+
+function removeUrls(text: string): string {
+    return text.replace(/https?:\/\/[^\s]+/g, '').trim();
+  }
 
 /**
  * Fetch proposals on curvemonitor
