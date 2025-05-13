@@ -144,7 +144,7 @@ const removeProposalAdded = (curveMonitorProposals: CurveMonitorProposal[], snap
 }
 
 const getLink = (proposal: CurveMonitorProposal): string => {
-    return `https://curve.fi/dao/#/ethereum/proposals/${proposal.vote_id}-${proposal.vote_type.toUpperCase()}`;
+    return `https://curve.finance/dao/#/ethereum/proposals/${proposal.vote_id}-${proposal.vote_type.toUpperCase()}`;
 }
 
 mirrorCrv().catch((e) => {
