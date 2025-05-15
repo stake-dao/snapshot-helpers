@@ -116,8 +116,6 @@ class SpectraCreateProposal extends CreateProposal {
                 continue;
             }
 
-            console.log(Number(BigInt(poolData[1])))
-
             pools.push({
                 id: poolId.toString(),
                 poolAddress: poolData[0] as `0x${string}`,
@@ -139,6 +137,8 @@ class SpectraCreateProposal extends CreateProposal {
                 transport: http(CHAIN_ID_TO_RPC[pool.chainId])
             });
 
+            console.log(pool.chainId, CHAIN_ID_TO_RPC[pool.chainId])
+
             // @ts-ignore
             const res = await client.multicall({
                 contracts: [
@@ -152,6 +152,7 @@ class SpectraCreateProposal extends CreateProposal {
             });
 
             pool.coinPT = res.shift().result;
+            console.log(pool.coinPT)
             if (pool.coinPT !== undefined) {
                 const resSymbol = await client.multicall({
                     contracts: [
