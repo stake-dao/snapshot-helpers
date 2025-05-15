@@ -116,6 +116,8 @@ class SpectraCreateProposal extends CreateProposal {
                 continue;
             }
 
+            console.log(Number(BigInt(poolData[1])))
+
             pools.push({
                 id: poolId.toString(),
                 poolAddress: poolData[0] as `0x${string}`,
@@ -194,6 +196,7 @@ class SpectraCreateProposal extends CreateProposal {
             responses.push(name);
         }
 
+        console.log(responses)
         return responses;
     }
 }
