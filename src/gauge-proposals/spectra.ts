@@ -126,6 +126,7 @@ class SpectraCreateProposal extends CreateProposal {
         for (const pool of pools) {
             const chain = this.getChain(pool.chainId);
             if (!chain) {
+                console.log("skip", pool)
                 continue;
             }
 
