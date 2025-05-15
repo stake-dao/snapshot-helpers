@@ -12,7 +12,7 @@ export const CHAIN_ID_TO_RPC = {
     8453: "https://base-mainnet.g.alchemy.com/v2/" + process.env.WEB3_ALCHEMY_API_KEY,
     10: "https://opt-mainnet.g.alchemy.com/v2/" + process.env.WEB3_ALCHEMY_API_KEY,
     137: "https://polygon-mainnet.g.alchemy.com/v2/" + process.env.WEB3_ALCHEMY_API_KEY,
-    146: "https://sonic-mainnet.g.alchemy.com/v2/" + process.env.WEB3_ALCHEMY_API_KEY,
+    146: "https://sonic.drpc.org",
 }
 
 export const MS_ADDRESS = "0xB0552b6860CE5C0202976Db056b5e3Cc4f9CC765";

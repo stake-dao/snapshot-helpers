@@ -44,8 +44,6 @@ export abstract class CreateProposal {
                 return;
             }
 
-            return
-
             // Get start / end proposal dates to generate the title
             const startProposalDate = moment(thursday).add(7, "days");
             const endProposalDate = this.getEndProposalTimestamp(startProposalDate);

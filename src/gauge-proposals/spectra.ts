@@ -126,7 +126,6 @@ class SpectraCreateProposal extends CreateProposal {
         for (const pool of pools) {
             const chain = this.getChain(pool.chainId);
             if (!chain) {
-                console.log("skip", pool)
                 continue;
             }
 
@@ -136,8 +135,6 @@ class SpectraCreateProposal extends CreateProposal {
                 chain: chain,
                 transport: http(CHAIN_ID_TO_RPC[pool.chainId])
             });
-
-            console.log(pool.chainId, CHAIN_ID_TO_RPC[pool.chainId])
 
             // @ts-ignore
             const res = await client.multicall({
@@ -152,7 +149,6 @@ class SpectraCreateProposal extends CreateProposal {
             });
 
             pool.coinPT = res.shift().result;
-            console.log(pool.coinPT)
             if (pool.coinPT !== undefined) {
                 const resSymbol = await client.multicall({
                     contracts: [
@@ -197,7 +193,6 @@ class SpectraCreateProposal extends CreateProposal {
             responses.push(name);
         }
 
-        console.log(responses)
         return responses;
     }
 }
