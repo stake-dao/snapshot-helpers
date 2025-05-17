@@ -8,7 +8,7 @@ export const SPACES: any = {
     "veyfi.eth": "sdyfi.eth",
     "mavxyz.eth": "sdmav.eth",
     "fxn.eth": "sdfxn.eth",
-    "cakevote.eth": "sdcake.eth",
+    //"cakevote.eth": "sdcake.eth",
     "blackpoolhq.eth": "sdbpt.eth",
     "curve.eth": SDCRVGOV,
 };

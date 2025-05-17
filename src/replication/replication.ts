@@ -53,7 +53,7 @@ const spaces: Record<string, string> = {
     "sdpendle.eth": "Pendle",
     "sdmav.eth": "MAV",
     "sdfxn.eth": "FXN",
-    "sdcake.eth": "CAKE",
+    //"sdcake.eth": "CAKE",
     "sdbpt.eth": "BPT",
 }
 
