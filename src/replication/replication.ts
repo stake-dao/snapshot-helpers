@@ -851,6 +851,14 @@ const main = async () => {
                 if (tx.status === "success" && votesOk) {
                     message = `✅ Vote${onchainVotes.length > 1 ? "s" : ""}`;
                     message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module\n`;
+                    message += ` ${onchainVotes.map((vote) => {
+                        const yea = BigInt(vote.args[1]);
+                        const nay = BigInt(vote.args[2]);
+                        const total = yea + nay;
+                        const yeaPercentage = Number(yea * BigInt(100) / total)
+                        const nayPercentage = Number(nay * BigInt(100) / total)
+                        return `Vote ${vote.args[0].toString()} : Yes ${yeaPercentage.toFixed(2)}% - No ${nayPercentage}%`
+                    }).join("\n")}\n`;
                     message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
                 } else {
                     message = `❌ Vote${onchainVotes.length > 1 ? "s" : ""}`;
