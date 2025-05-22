@@ -29,6 +29,7 @@
     "weekly-cake-proposal": "npx ts-node src/gauge-proposals/cake.ts",
     "weekly-pendle-proposal": "npx ts-node src/gauge-proposals/pendle.ts",
     "weekly-spectra-proposal": "npx ts-node src/gauge-proposals/spectra.ts",
+    "bi-weekly-sdyfi-vote": "npx ts-node src/gauge-proposals/yfi.ts",
     "mirror": "npx ts-node mirror.ts",
     "mirror-crv": "npx ts-node src/mirror/crv.ts",
     "replication": "npx ts-node src/replication/replication.ts",
