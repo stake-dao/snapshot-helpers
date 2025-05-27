@@ -1,10 +1,10 @@
 name: "All jobs"
 
-on: 
+on:
   workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *' # Every 5 minutes
-  
+    - cron: "*/5 * * * *" # Every 5 minutes
+
 env:
   PK_1: ${{ secrets.PK_1 }}
   PK_2: ${{ secrets.PK_2 }}
@@ -29,9 +29,13 @@ jobs:
       # added or changed files to the repository.
       contents: write
     steps:
-        - uses: actions/checkout@v4
-        - run: npm install
-        - run: npm run mirror
-        - run: npm run mirror-crv
-        - run: npm run replication
-        - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm run mirror
+      - run: npm run mirror-crv
+      - run: npm run replication
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_user_name: GitHub Action Bot
+          commit_user_email: action@github.com
+          commit_author: GitHub Action Bot <action@github.com>
