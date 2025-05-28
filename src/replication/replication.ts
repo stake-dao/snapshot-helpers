@@ -850,7 +850,6 @@ const main = async () => {
                 const votesOk = await checkCurveVotes(onchainVotes);
                 let message = "";
                 if (tx.status === "success" && votesOk) {
-                    message = `✅ ${onchainVotes.length} vote${onchainVotes.length > 1 ? "s" : ""} sent from safe module\n\n`;
                     for(const vote of onchainVotes) {
                         const yea = BigInt(vote.args[1]);
                         const nay = BigInt(vote.args[2]);
@@ -858,7 +857,7 @@ const main = async () => {
                         const yeaPercentage = Number(yea * BigInt(100) / total)
                         const nayPercentage = Number(nay * BigInt(100) / total)
 
-                        message += `${vote.proposalTitle}\n`
+                        message += `✅ ${vote.proposalTitle}\n`
                         message += `Result : Yes ${yeaPercentage.toFixed(2)}% - No ${nayPercentage}%\n\n`
                     }
                 } else {
@@ -866,8 +865,7 @@ const main = async () => {
                     message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module but the tx reverted\n`;
                 }
 
-                message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
-                message += "@chago0x @pi3rrem";
+                message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>`;
 
                 await sendTelegramMsgInSDGovChannel(message);
             }
