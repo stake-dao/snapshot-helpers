@@ -5,4 +5,5 @@ export interface IProposalMessageForOperationChannel {
     voter: string | undefined;
     args: any[],
     isOnchainProposal: boolean;
+    proposalTitle: string;
 }

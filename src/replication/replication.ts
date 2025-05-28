@@ -729,6 +729,7 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
 
     return {
         text,
+        proposalTitle: proposal.title,
         deadline,
         payload,
         args,
@@ -849,23 +850,23 @@ const main = async () => {
                 const votesOk = await checkCurveVotes(onchainVotes);
                 let message = "";
                 if (tx.status === "success" && votesOk) {
-                    message = `✅ Vote${onchainVotes.length > 1 ? "s" : ""}`;
-                    message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module\n`;
-                    message += ` ${onchainVotes.map((vote) => {
+                    message = `✅ ${onchainVotes.length} vote${onchainVotes.length > 1 ? "s" : ""} sent from safe module\n\n`;
+                    for(const vote of onchainVotes) {
                         const yea = BigInt(vote.args[1]);
                         const nay = BigInt(vote.args[2]);
                         const total = yea + nay;
                         const yeaPercentage = Number(yea * BigInt(100) / total)
                         const nayPercentage = Number(nay * BigInt(100) / total)
-                        return `Vote ${vote.args[0].toString()} : Yes ${yeaPercentage.toFixed(2)}% - No ${nayPercentage}%`
-                    }).join("\n")}\n`;
-                    message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
+
+                        message += `${vote.proposalTitle}\n`
+                        message += `Result : Yes ${yeaPercentage.toFixed(2)}% - No ${nayPercentage}%\n\n`
+                    }
                 } else {
                     message = `❌ Vote${onchainVotes.length > 1 ? "s" : ""}`;
                     message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module but the tx reverted\n`;
-                    message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
                 }
 
+                message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>\n`;
                 message += "@chago0x @pi3rrem";
 
                 await sendTelegramMsgInSDGovChannel(message);
