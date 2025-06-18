@@ -49,6 +49,8 @@ const SPACES_DEFAULT_MIN_TS: any = {
     "spectradao.eth": 1662377996,
     "cakevote.eth": 1701457094,
     "blackpoolhq.eth": 1701457094,
+    "ynd.eth": 1750252699,
+    "ynd-gauges.eth": 1750252699,
 };
 
 const fetchProtocolProposal = async ({ space, minCreated = DEFAULT_MIN_TS }: any) => {
