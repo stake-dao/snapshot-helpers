@@ -201,7 +201,9 @@ const handlers: Record<string, (space: string) => Promise<void>> = {
     "veyfi.eth": handleBasicSnaphsot,
     "mavxyz.eth": handleBasicSnaphsot,
     "fxn.eth": handleBasicSnaphsot,
-   // "cakevote.eth": handleBasicSnaphsot,
+    // "cakevote.eth": handleBasicSnaphsot,
+    "ynd.eth": handleBasicSnaphsot,
+    "ynd-gauges.eth": handleBasicSnaphsot,
 };
 
 const main = async () => {

@@ -11,4 +11,6 @@ export const SPACES: any = {
     //"cakevote.eth": "sdcake.eth",
     "blackpoolhq.eth": "sdbpt.eth",
     "curve.eth": SDCRVGOV,
+    "ynd.eth": "sdynd.eth",
+    "ynd-gauges.eth": "sdynd.eth",
 };
