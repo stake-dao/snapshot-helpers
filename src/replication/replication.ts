@@ -55,6 +55,7 @@ const spaces: Record<string, string> = {
     "sdfxn.eth": "FXN",
     //"sdcake.eth": "CAKE",
     "sdbpt.eth": "BPT",
+    "sdynd.eth": "YND",
 }
 
 var originSpaces: Record<string, string> = {
