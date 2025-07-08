@@ -58,7 +58,7 @@ const spaces: Record<string, string> = {
     "sdynd.eth": "YND",
 }
 
-var originSpaces: Record<string, string> = {
+var originSpaces: Record<string, string | string[]> = {
     "sdangle.eth": "anglegovernance.eth",
     "sdfxs.eth": "frax.eth",
     "sdcrv.eth": "curve.eth",
@@ -71,6 +71,7 @@ var originSpaces: Record<string, string> = {
     "sdfxn.eth": "fxn.eth",
     "sdcake.eth": "cakevote.eth",
     "sdbpt.eth": "blackpoolhq.eth",
+    "sdynd.eth": ["ynd-gauges.eth", "ynd.eth"],
 }
 
 interface Proposal {
@@ -313,8 +314,23 @@ const getClosed = async (space: string, timePerSpaces: Record<string, number>): 
 }
 
 const getOriginalProposal = async (proposal: Proposal, space: string): Promise<Proposal | undefined> => {
-    const originSpace = originSpaces[space];
+    const _originSpaces = originSpaces[space];
+    if (Array.isArray(_originSpaces)) {
+        for (const originSpace of _originSpaces) {
+            const originalProposal = await _getOriginalProposal(proposal, space, originSpace);
+            if (originalProposal !== undefined) {
+                return originalProposal;
+            }
+        }
+    } else {
+        return await _getOriginalProposal(proposal, space, _originSpaces);
+    }
 
+    return undefined;
+}
+
+const _getOriginalProposal = async(proposal: Proposal, space: string, originSpace: string): Promise<Proposal | undefined> => {
+    
     let title = proposal.title;
     if (space.toLowerCase() === "sdyfi.eth") {
         title = title.replaceAll("Gauge vote YFI - ", "");
@@ -520,7 +536,22 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
         return undefined;
     }
 
-    const originSpace = originSpaces[space];
+    const _originSpaces = originSpaces[space];
+    if(Array.isArray(_originSpaces)) {
+        for(const originSpace of _originSpaces) {
+            const response = await getProposalMessageForOperationChannelForOneSpace(proposal, token, space, originSpace);
+            if(response !== undefined) {
+                return response;
+            }
+        }
+    } else {
+        return await getProposalMessageForOperationChannelForOneSpace(proposal, token, space, _originSpaces);
+    }
+
+    return undefined;
+}
+
+const getProposalMessageForOperationChannelForOneSpace = async (proposal: Proposal, token: string, space: string, originSpace: string): Promise<IProposalMessageForOperationChannel | undefined> => {
     const isCurveProposal = originSpace == "curve.eth";
 
     let isAngleOnChainProposal = false;
