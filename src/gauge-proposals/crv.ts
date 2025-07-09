@@ -50,7 +50,7 @@ class CrvCreateProposal extends CreateProposal {
         // Push a vote on mainnet from PK for sdCRV/CRV gauge
         await this.voteCRV(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, this.SDCRV_CRV_GAUGE);
         await this.voteCRV(gauges, receipt.id as string, process.env.ARBITRUM_VOTE_PRIVATE_KEY, this.ARBITRUM_VSDCRV_GAUGE);
-        await this.voteCRV(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, this.POLYGON_VSDCRV_GAUGE);
+        //await this.voteCRV(gauges, receipt.id as string, process.env.POLYGON_VOTE_PRIVATE_KEY, this.POLYGON_VSDCRV_GAUGE);
     }
 
 
