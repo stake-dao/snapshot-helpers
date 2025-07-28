@@ -129,10 +129,10 @@ const sendTextToTelegramChat = async (
 
     let text = '';
     if (isClosed) {
-        text = `🔒 ${token} proposal closed: ${proposal.title} (<a href='https://stakedao.org/governance/protocols/${proposal.id}'>link</a>)`;
+        text = `🔒 ${token} proposal closed: ${proposal.title} (<a href='https://www.stakedao.org/governance/protocols?voteId=${proposal.id}'>link</a>)`;
     } else {
         const endDate = new Date(proposal.end * 1000).toISOString().replace('T', ' ').slice(0, 19); // Convertir en date au format UTC
-        text = `${intro}: ${proposal.title}\nEnd Date: ${endDate} UTC (<a href='https://stakedao.org/governance/protocols/${proposal.id}'>link</a>)`;
+        text = `${intro}: ${proposal.title}\nEnd Date: ${endDate} UTC (<a href='https://www.stakedao.org/governance/protocols?voteId=${proposal.id}'>link</a>)`;
     }
 
     try {
