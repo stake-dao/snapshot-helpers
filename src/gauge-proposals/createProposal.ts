@@ -113,13 +113,28 @@ export abstract class CreateProposal {
      * @returns Chain
      */
     protected getChain(chainId: number): chains.Chain | undefined {
+
         for (const chain of Object.values(chains)) {
             if ('id' in chain) {
                 if (chain.id === chainId) {
+
+                    if (chainId === 43111 && chain.contracts === undefined) {
+                        chain.contracts = {
+                            multicall3: {
+                                address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+                                blockCreated: 484490,
+                            },
+                        }
+                    }
+
                     return chain;
                 }
             }
         }
+
+        
+
+        
 
         return undefined;
     }

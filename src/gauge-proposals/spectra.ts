@@ -163,7 +163,7 @@ class SpectraCreateProposal extends CreateProposal {
 
                 const s = resSymbol.shift();
                 const symbol = s.result as string;
-                pool.symbol = symbol;
+                pool.symbol = symbol;    
             }
         }
 
@@ -179,7 +179,11 @@ class SpectraCreateProposal extends CreateProposal {
             }
 
             const splits = pool.symbol.split("-");
-            const maturity = parseInt(splits.pop());
+            const maturityStr = splits.pop();
+            const maturity = maturityStr.indexOf("/") > -1
+                ? moment(maturityStr, 'YYYY/MM/DD').unix()
+                : parseInt(maturityStr);
+
             if (maturity < now) {
                 continue;
             }
