@@ -38,4 +38,4 @@ export const etherscans = [
     }
 ];
 
-export const CURVE_API = "https://d3dl9x5bpp6us7.cloudfront.net"
+export const CURVE_API = "https://api.curve.finance"
