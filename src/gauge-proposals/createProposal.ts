@@ -125,6 +125,13 @@ export abstract class CreateProposal {
                                 blockCreated: 484490,
                             },
                         }
+                    } else if (chainId === 999 && chain.contracts === undefined) {
+                        chain.contracts = {
+                            multicall3: {
+                                address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+                                blockCreated: 13051,
+                            },
+                        }
                     }
 
                     return chain;
