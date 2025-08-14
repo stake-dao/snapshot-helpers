@@ -96,6 +96,10 @@ export abstract class CreateProposal {
      * @returns Chain name
      */
     protected getChainIdName(chainId: number): string {
+        if(chainId === 999) {
+            return "hype";
+        }
+
         for (const chain of Object.values(chains)) {
             if ('id' in chain) {
                 if (chain.id === chainId) {
@@ -113,23 +117,41 @@ export abstract class CreateProposal {
      * @returns Chain
      */
     protected getChain(chainId: number): chains.Chain | undefined {
+        if (chainId === 999) {
+            return {
+                id: 999,
+                name: 'Hype',
+                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                contracts: {
+                    multicall3: {
+                        address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+                        blockCreated: 13051,
+                    },
+                },
+                rpcUrls: {
+                    default: {
+                        http: ['https://hyperliquid.drpc.org'],
+                    },
+                },
+                blockExplorers: {
+                    default: {
+                        name: 'Hypurrscan',
+                        url: 'https://hypurrscan.io/',
+                        apiUrl: 'https://hypurrscan.io//api',
+                    },
+                },
+                testnet: false
+            }
+        }
 
         for (const chain of Object.values(chains)) {
             if ('id' in chain) {
-                if (chain.id === chainId) {
-
+                if (chain.id === chainId && !chain.testnet) {
                     if (chainId === 43111 && chain.contracts === undefined) {
                         chain.contracts = {
                             multicall3: {
                                 address: '0xcA11bde05977b3631167028862bE2a173976CA11',
                                 blockCreated: 484490,
-                            },
-                        }
-                    } else if (chainId === 999 && chain.contracts === undefined) {
-                        chain.contracts = {
-                            multicall3: {
-                                address: '0xcA11bde05977b3631167028862bE2a173976CA11',
-                                blockCreated: 13051,
                             },
                         }
                     }
@@ -138,10 +160,6 @@ export abstract class CreateProposal {
                 }
             }
         }
-
-        
-
-        
 
         return undefined;
     }
