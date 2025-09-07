@@ -11,7 +11,7 @@ import * as lodhash from 'lodash';
 import * as linkify from "linkifyjs";
 import CurveVoterABI from '../../abis/CurveVoter.json';
 import AngleGovernorABI from '../../abis/AngleGovernor.json';
-import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseUnits } from "viem";
+import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseAbi, parseUnits } from "viem";
 import * as chains from 'viem/chains'
 import { ANGLE_ONCHAIN_SUBGRAPH_URL, CHAIN_ID_TO_RPC, MS_ADDRESS } from "../../utils/constants";
 import { SafeTransactionHelper, TenderlyConfig } from "../../utils/safe-proposer/safe-transaction";
@@ -19,6 +19,7 @@ import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
 import { checkCurveVotes, votesFromSafeModule } from "./voterSafeModule";
 import { IProposalMessageForOperationChannel } from "./interfaces/IProposalMessageForOperationChannel";
 import { CURVE_OWNERSHIP_VOTER, CURVE_PARAMETER_VOTER } from "./addresses";
+import { getProposalById } from "../../utils/snapshot";
 
 dotenv.config();
 
@@ -872,12 +873,32 @@ const main = async () => {
     }
 
     // Push votes
+    await sendOnchainVotes(onchainVotes);
+
+    // Change timestamp for the next run
+    for (const space of ens) {
+        timePerSpaces[space] = now + 1;
+    }
+
+    // Clear proposals fetched
+    const twoDaysAgo = now - ONE_HOUR * 24 * 2;
+    const newProposalFetched: ProposalFetched[][] = [];
+    newProposalFetched.push(proposalsFetched[0].filter((p) => p.ts > twoDaysAgo));
+    newProposalFetched.push(proposalsFetched[1].filter((p) => p.ts > twoDaysAgo));
+
+    fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), { encoding: 'utf-8' });
+    fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), { encoding: 'utf-8' });
+};
+
+const sendOnchainVotes = async (onchainVotes: IProposalMessageForOperationChannel[]) => {
+    // Push votes
     if (onchainVotes.length > 0) {
         try {
             const tx = await votesFromSafeModule(onchainVotes);
             if (tx === undefined) {
                 // error
-                await sendTelegramMsgInSDGovChannel("Error when sending votes from safe module, check logs @chago0x @pi3rrem");
+                const ids = onchainVotes.map((v) => v.args[0])
+                await sendTelegramMsgInSDGovChannel(`Error when sending votes ${ids.join("/")} from safe module, check logs @chago0x @pi3rrem`);
             } else if (tx !== null) {
                 const votesOk = await checkCurveVotes(onchainVotes);
                 let message = "";
@@ -907,21 +928,72 @@ const main = async () => {
             console.log(e);
         }
     }
+}
 
-    // Change timestamp for the next run
-    for (const space of ens) {
-        timePerSpaces[space] = now + 1;
+const manualCrvVote = async () => {
+    const proposals = await getProposalById("0x29bc6eb2617bda19bb0776c9a3e3c5324a8aabfde080339fc3e17f635f871ab8");
+    if (proposals.length !== 1) {
+        return;
+    }
+    const space = "sdcrv-gov.eth";
+    const proposal = proposals[0]
+
+    const onchainVotes: IProposalMessageForOperationChannel[] = [];
+    const message = await getProposalMessageForOperationChannel(proposal, spaces[space], space);
+    if (message) {
+        if (message.isOnchainProposal) {
+            onchainVotes.push(message);
+        } else {
+            await sendTelegramMsgInSDGovChannel(formatSnapshotMessage(message));
+        }
     }
 
-    // Clear proposals fetched
-    const twoDaysAgo = now - ONE_HOUR * 24 * 2;
-    const newProposalFetched: ProposalFetched[][] = [];
-    newProposalFetched.push(proposalsFetched[0].filter((p) => p.ts > twoDaysAgo));
-    newProposalFetched.push(proposalsFetched[1].filter((p) => p.ts > twoDaysAgo));
+    const curvesVotes = onchainVotes.filter((onchainVote) => onchainVote.args.length === 4 && (onchainVote.args[3].toLowerCase() === CURVE_OWNERSHIP_VOTER.toLowerCase() || onchainVote.args[3].toLowerCase() === CURVE_PARAMETER_VOTER.toLowerCase()));
+            if (curvesVotes.length === 0) {
+                return null;
+            }
+    
+            // Compute args
+            const args = curvesVotes.map((curvesVote) => {
+                return {
+                    _voteId: BigInt(curvesVote.args[0]), // vote id
+                    _yeaPct: BigInt(curvesVote.args[1]), // yea
+                    _nayPct: BigInt(curvesVote.args[2]), // nay
+                    _voteType: curvesVote.args[3].toLowerCase() === CURVE_OWNERSHIP_VOTER.toLowerCase() ? 0 : 1 // O for ownership and 1 for parameter
+                } ;
+            });
 
-    fs.writeFileSync("./data/replication.json", JSON.stringify(timePerSpaces), { encoding: 'utf-8' });
-    fs.writeFileSync("./data/replication_proposals.json", JSON.stringify(newProposalFetched), { encoding: 'utf-8' });
-};
+    const dataVote = encodeFunctionData({
+        abi: parseAbi([
+            'function votePct(uint256,uint256,uint256,bool)'
+        ]),
+        functionName: 'votePct',
+        args: [args[0]._voteId, args[0]._yeaPct, args[0]._nayPct, false]
+    });
+
+    const dataLocker = encodeFunctionData({
+        abi: parseAbi([
+            'function execute(address,uint256,bytes)'
+        ]),
+        functionName: 'execute',
+        args: [CURVE_OWNERSHIP_VOTER, BigInt(0), dataVote]
+    });
+
+    console.log(`
+        To : 0x52f541764e6e90eebc5c21ff570de0e2d63766b6
+        From : 0xe5d6D047DF95c6627326465cB27B64A8b77A8b91
+        Data : ${dataLocker}
+        `)
+
+   /* const dataGateway = encodeFunctionData({
+        abi: parseAbi([
+            'function execute(address,uint256,bytes)'
+        ]),
+        functionName: 'execute',
+        args: [CURVE_OWNERSHIP_VOTER, BigInt(0), dataVote]
+    });*/
+    //await sendOnchainVotes(onchainVotes);
+}
 
 main().catch((e) => {
     console.error(e);

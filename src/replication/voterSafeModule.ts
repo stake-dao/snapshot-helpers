@@ -1,10 +1,9 @@
-import { Address, createPublicClient, createWalletClient, encodeFunctionData, http, parseAbi, toHex, TransactionReceipt } from "viem"
+import { Address, createPublicClient, createWalletClient, encodeFunctionData, http, parseAbi, TransactionReceipt } from "viem"
 import { IProposalMessageForOperationChannel } from "./interfaces/IProposalMessageForOperationChannel";
 import { CURVE_OWNERSHIP_VOTER, CURVE_PARAMETER_VOTER } from "./addresses";
 import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { CHAIN_ID_TO_RPC } from "../../utils/constants";
-import { exit } from "process";
 
 const VOTER_CURVE_SAFE_MODULE = "0x665d334388012d17F1d197dE72b7b708ffCCB67d" as `0x${string}`;
 
