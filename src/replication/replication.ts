@@ -330,8 +330,8 @@ const getOriginalProposal = async (proposal: Proposal, space: string): Promise<P
     return undefined;
 }
 
-const _getOriginalProposal = async(proposal: Proposal, space: string, originSpace: string): Promise<Proposal | undefined> => {
-    
+const _getOriginalProposal = async (proposal: Proposal, space: string, originSpace: string): Promise<Proposal | undefined> => {
+
     let title = proposal.title;
     if (space.toLowerCase() === "sdyfi.eth") {
         title = title.replaceAll("Gauge vote YFI - ", "");
@@ -538,10 +538,10 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
     }
 
     const _originSpaces = originSpaces[space];
-    if(Array.isArray(_originSpaces)) {
-        for(const originSpace of _originSpaces) {
+    if (Array.isArray(_originSpaces)) {
+        for (const originSpace of _originSpaces) {
             const response = await getProposalMessageForOperationChannelForOneSpace(proposal, token, space, originSpace);
-            if(response !== undefined) {
+            if (response !== undefined) {
                 return response;
             }
         }
@@ -903,7 +903,7 @@ const sendOnchainVotes = async (onchainVotes: IProposalMessageForOperationChanne
                 const votesOk = await checkCurveVotes(onchainVotes);
                 let message = "";
                 if (tx.status === "success" && votesOk) {
-                    for(const vote of onchainVotes) {
+                    for (const vote of onchainVotes) {
                         const yea = BigInt(vote.args[1]);
                         const nay = BigInt(vote.args[2]);
                         const total = yea + nay;
@@ -931,7 +931,7 @@ const sendOnchainVotes = async (onchainVotes: IProposalMessageForOperationChanne
 }
 
 const manualCrvVote = async () => {
-    const proposals = await getProposalById("0x29bc6eb2617bda19bb0776c9a3e3c5324a8aabfde080339fc3e17f635f871ab8");
+    const proposals = await getProposalById("0x771afcdab4dfbbda79da15bad64451b472d1030e48d4315f098ecb33e92cd067");
     if (proposals.length !== 1) {
         return;
     }
@@ -949,19 +949,19 @@ const manualCrvVote = async () => {
     }
 
     const curvesVotes = onchainVotes.filter((onchainVote) => onchainVote.args.length === 4 && (onchainVote.args[3].toLowerCase() === CURVE_OWNERSHIP_VOTER.toLowerCase() || onchainVote.args[3].toLowerCase() === CURVE_PARAMETER_VOTER.toLowerCase()));
-            if (curvesVotes.length === 0) {
-                return null;
-            }
-    
-            // Compute args
-            const args = curvesVotes.map((curvesVote) => {
-                return {
-                    _voteId: BigInt(curvesVote.args[0]), // vote id
-                    _yeaPct: BigInt(curvesVote.args[1]), // yea
-                    _nayPct: BigInt(curvesVote.args[2]), // nay
-                    _voteType: curvesVote.args[3].toLowerCase() === CURVE_OWNERSHIP_VOTER.toLowerCase() ? 0 : 1 // O for ownership and 1 for parameter
-                } ;
-            });
+    if (curvesVotes.length === 0) {
+        return null;
+    }
+
+    // Compute args
+    const args = curvesVotes.map((curvesVote) => {
+        return {
+            _voteId: BigInt(curvesVote.args[0]), // vote id
+            _yeaPct: BigInt(curvesVote.args[1]), // yea
+            _nayPct: BigInt(curvesVote.args[2]), // nay
+            _voteType: curvesVote.args[3].toLowerCase() === CURVE_OWNERSHIP_VOTER.toLowerCase() ? 0 : 1 // O for ownership and 1 for parameter
+        };
+    });
 
     const dataVote = encodeFunctionData({
         abi: parseAbi([
@@ -985,13 +985,13 @@ const manualCrvVote = async () => {
         Data : ${dataLocker}
         `)
 
-   /* const dataGateway = encodeFunctionData({
-        abi: parseAbi([
-            'function execute(address,uint256,bytes)'
-        ]),
-        functionName: 'execute',
-        args: [CURVE_OWNERSHIP_VOTER, BigInt(0), dataVote]
-    });*/
+    /* const dataGateway = encodeFunctionData({
+         abi: parseAbi([
+             'function execute(address,uint256,bytes)'
+         ]),
+         functionName: 'execute',
+         args: [CURVE_OWNERSHIP_VOTER, BigInt(0), dataVote]
+     });*/
     //await sendOnchainVotes(onchainVotes);
 }
 

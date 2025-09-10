@@ -5,7 +5,7 @@ import { mainnet } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 import { CHAIN_ID_TO_RPC } from "../../utils/constants";
 
-const VOTER_CURVE_SAFE_MODULE = "0x665d334388012d17F1d197dE72b7b708ffCCB67d" as `0x${string}`;
+const VOTER_CURVE_SAFE_MODULE = "0xb118fbE8B01dB24EdE7E87DFD19693cfca13e992" as `0x${string}`;
 
 type VoteParam = { _voteId: bigint; _yeaPct: bigint; _nayPct: bigint; _voteType: number; }
 type VoteParams = readonly VoteParam[];
