@@ -62,6 +62,10 @@ class PendleCreateProposal extends CreateProposal {
                     }
 
                     for (const gauge of gauges) {
+                        if (gauge.votable === false) {
+                            continue;
+                        }
+
                         let name = gauge.pt.name;
                         if (name.indexOf("PT ") > -1) {
                             name = name.replace("PT ", "");
