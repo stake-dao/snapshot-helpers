@@ -89,10 +89,10 @@ class PendleCreateProposal extends CreateProposal {
     
     public async vote(receipt: any, gauges: string[], waitSleep?: boolean): Promise<void> {
         // Wait 5 minutes to be in the voting window
-        //await sleep(1 * 60 * 1000);
+        await sleep(1 * 60 * 1000);
 
         // Push a vote on mainnet from PK for asdPendle
-        //await this.votePendle(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, "0xfa19d3a9F73180c9E73D2811e0b66EEED612f728");
+        await this.votePendle(gauges, receipt.id as string, process.env.VOTE_PRIVATE_KEY, "0xbe570be4238bd9019aa8d575204f1daa27ee0a15");
     }
 
     private async votePendle(gauges: string[], proposalId: string, pkStr: string, targetGaugeAddress: string) {
