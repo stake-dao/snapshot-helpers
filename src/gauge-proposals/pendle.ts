@@ -8,7 +8,7 @@ import { BytesLike, ethers } from "ethers";
 
 class PendleCreateProposal extends CreateProposal {
 
-    protected canExecute(): boolean {
+    public canExecute(): boolean {
         return true;
     }
 
@@ -28,7 +28,7 @@ class PendleCreateProposal extends CreateProposal {
         return "1";
     }
 
-    protected getSpace(): string {
+    public getSpace(): string {
         return "sdpendle.eth";
     }
 
@@ -87,7 +87,7 @@ class PendleCreateProposal extends CreateProposal {
     }
 
     
-    public async vote(receipt: any, gauges: string[], waitSleep?: boolean): Promise<void> {
+    protected async vote(receipt: any, gauges: string[], waitSleep?: boolean): Promise<void> {
         // Wait 5 minutes to be in the voting window
         await sleep(1 * 60 * 1000);
 

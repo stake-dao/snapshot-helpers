@@ -8,7 +8,7 @@ import { sleep } from "../../utils/sleep";
 
 class FxnCreateProposal extends CreateProposal {
 
-    protected canExecute(): boolean {
+    public canExecute(): boolean {
         return moment().isoWeek() % 2 !== 0;
     }
 
@@ -28,7 +28,7 @@ class FxnCreateProposal extends CreateProposal {
         return "1";
     }
 
-    protected getSpace(): string {
+    public getSpace(): string {
         return "sdfxn.eth";
     }
 

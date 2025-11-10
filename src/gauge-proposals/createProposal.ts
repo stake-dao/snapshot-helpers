@@ -76,7 +76,7 @@ export abstract class CreateProposal {
             } as any;
 
             const receipt = await this.createProposal(proposal);
-            await this.vote(receipt, gauges);
+            await this.vote(receipt, gauges, true);
         }
         catch (e) {
             console.error(e);
@@ -196,7 +196,7 @@ export abstract class CreateProposal {
      * Mainly based on the current timestamp
      * ie : weekly, 2 times per week ...
      */
-    protected abstract canExecute(): boolean;
+    public abstract canExecute(): boolean;
 
     /**
      * Return all gauges as strings
@@ -213,7 +213,7 @@ export abstract class CreateProposal {
      * Return the snapshot space
      * ie : sdcrv.eth
      */
-    protected abstract getSpace(): string;
+    public abstract getSpace(): string;
 
     /**
      * Get the proposal end timestamp 
@@ -240,7 +240,7 @@ export abstract class CreateProposal {
         return Promise.resolve();
     }
 
-    private async manualVote(proposalId: string): Promise<void> {
+    public async manualVote(proposalId: string): Promise<void> {
         const result = (await request(`${SNAPSHOT_URL}/graphql`, QUERY_BY_ID, {
             id: proposalId
         })) as any;

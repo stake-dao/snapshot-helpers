@@ -6,7 +6,7 @@ import * as chains from 'viem/chains'
 
 class SpectraCreateProposal extends CreateProposal {
 
-    protected canExecute(): boolean {
+    public canExecute(): boolean {
         return true;
     }
 
@@ -26,7 +26,7 @@ class SpectraCreateProposal extends CreateProposal {
         return "8453";
     }
 
-    protected getSpace(): string {
+    public getSpace(): string {
         return "sdspectra.eth";
     }
 

@@ -8,7 +8,7 @@ import { BytesLike, ethers } from "ethers";
 
 class BalCreateProposal extends CreateProposal {
 
-    protected canExecute(): boolean {
+    public canExecute(): boolean {
         return moment().isoWeek() % 2 !== 0;
     }
 
@@ -28,7 +28,7 @@ class BalCreateProposal extends CreateProposal {
         return "1";
     }
 
-    protected getSpace(): string {
+    public getSpace(): string {
         return "sdbal.eth";
     }
 

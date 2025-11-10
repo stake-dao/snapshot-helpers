@@ -22,6 +22,7 @@
   },
   "scripts": {
     "weekly-crv-proposal": "npx ts-node src/gauge-proposals/crv.ts",
+    "weekly-crv-revote": "npx ts-node src/gauge-proposals/revote-crv.ts",
     "weekly-angle-proposal": "npx ts-node src/gauge-proposals/angle.ts",
     "weekly-bal-proposal": "npx ts-node src/gauge-proposals/bal.ts",
     "weekly-fxn-proposal": "npx ts-node src/gauge-proposals/fxn.ts",

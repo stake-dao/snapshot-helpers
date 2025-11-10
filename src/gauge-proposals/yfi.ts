@@ -8,7 +8,7 @@ import { GraphQLResponse } from "../replication/interfaces/graphql";
 
 class YFICreateProposal extends CreateProposal {
 
-    protected canExecute(): boolean {
+    public canExecute(): boolean {
         return moment().isoWeek() % 2 !== 0;
     }
 
@@ -28,7 +28,7 @@ class YFICreateProposal extends CreateProposal {
         return "1";
     }
 
-    protected getSpace(): string {
+    public getSpace(): string {
         return "sdyfi.eth";
     }
 

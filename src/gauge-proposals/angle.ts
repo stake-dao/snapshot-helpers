@@ -4,7 +4,7 @@ import moment from "moment";
 
 class AngleCreateProposal extends CreateProposal {
 
-    protected canExecute(): boolean {
+    public canExecute(): boolean {
         return moment().isoWeek() % 2 !== 0;
     }
 
@@ -24,7 +24,7 @@ class AngleCreateProposal extends CreateProposal {
         return "1";
     }
 
-    protected getSpace(): string {
+    public getSpace(): string {
         return "sdangle.eth";
     }
 

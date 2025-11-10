@@ -14,7 +14,7 @@ dotenv.config();
 
 class CakeCreateProposal extends CreateProposal {
 
-    protected canExecute(): boolean {
+    public canExecute(): boolean {
         return moment().isoWeek() % 2 === 0;
     }
 
@@ -34,7 +34,7 @@ class CakeCreateProposal extends CreateProposal {
         return "56";
     }
 
-    protected getSpace(): string {
+    public getSpace(): string {
         return "sdcake.eth";
     }
 
