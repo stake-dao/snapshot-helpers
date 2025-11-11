@@ -54,7 +54,7 @@ export const createProposal = async ({ payload }: any) => {
     let created = false;
 
     for (const pk of pks) {
-        const signer = new Wallet(pk, provider);
+        const signer = new Wallet(pk, (provider as any));
         const address = signer.address;
         const nbActiveProposal = await fetchNbActiveProtocolProposal(address);
         if (nbActiveProposal >= 10) {

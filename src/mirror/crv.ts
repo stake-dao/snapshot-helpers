@@ -58,28 +58,39 @@ const mirrorCrv = async () => {
 
 function removeUrls(text: string): string {
     return text.replace(/https?:\/\/[^\s]+/g, '').trim();
-  }
+}
 
 /**
  * Fetch proposals on curvemonitor
  * @returns last 1000 proposals
  */
 const fetchCurveProposalWithCurveMonitor = async (): Promise<CurveMonitorProposal[]> => {
-    const { data: {proposals} } = await axios.get("https://prices.curve.finance/v1/dao/proposals?pagination=100");
+    const { data: { proposals } } = await axios.get("https://prices.curve.finance/v1/dao/proposals?pagination=100");
 
     const results: CurveMonitorProposal[] = [];
     for (const proposal of proposals) {
-        let [first, hash] = proposal.ipfs_metadata.split(":");
-        if (!hash) {
-            hash = first;
-        }
 
         let metadata = "";
-        if (proposal.metadata && proposal.metadata.length > 0) {
+
+        if (proposal.ipfs_metadata.indexOf("ipfs") > -1) {
+            let [first, hash] = proposal.ipfs_metadata.split(":");
+            if (!hash) {
+                hash = first;
+            }
+
+            if (proposal.metadata && proposal.metadata.length > 0) {
+                metadata = proposal.metadata;
+            } else {
+                metadata = await getLabel(hash);
+            }
+        } else if (proposal.ipfs_metadata?.length > 0 && proposal.ipfs_metadata.indexOf(" ") > -1) {
+            metadata = proposal.ipfs_metadata;
+        } else if (proposal.metadata !== null) {
             metadata = proposal.metadata;
         } else {
-            metadata = await getLabel(hash);
+            metadata = "No title"
         }
+
 
         results.push({ ...proposal, metadata });
     }
