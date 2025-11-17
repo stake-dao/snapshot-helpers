@@ -26,7 +26,7 @@ export abstract class CreateProposal {
 
             const space = this.getSpace();
             const now = moment().utc();
-            const thursday = moment(now).startOf('week').add(4, 'days');
+            const thursday = moment(now).startOf('week').add(4, 'days');            
             const blockTimestamp =  thursday.set('hours', 2).set('minute', 0).set('second', 0).set('millisecond', 0);
             const startTimestamp = blockTimestamp.unix();
             const endTimestamp = momentTimezone.unix(startTimestamp).tz('Europe/Paris').add(5, "days").set('hours', 16).set('minute', 0).set('second', 0).set('millisecond', 0).unix();
@@ -152,6 +152,15 @@ export abstract class CreateProposal {
                             multicall3: {
                                 address: '0xcA11bde05977b3631167028862bE2a173976CA11',
                                 blockCreated: 484490,
+                            },
+                        }
+                    }
+
+                    if (chainId === chains.katana.id && chain.contracts === undefined) {
+                        chain.contracts = {
+                            multicall3: {
+                                address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+                                blockCreated: 10646851,
                             },
                         }
                     }

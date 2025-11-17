@@ -103,7 +103,7 @@ class SpectraCreateProposal extends CreateProposal {
                 chainId: chains.base.id,
             });
         }
-        results = await publicClient.multicall({ contracts: calls });
+        results = await publicClient.multicall({ contracts: calls, authorizationList: undefined, });
 
         const pools: any[] = [];
         for (const poolId of poolIds) {
@@ -143,7 +143,7 @@ class SpectraCreateProposal extends CreateProposal {
                         address: pool.poolAddress as `0x${string}`,
                         abi: poolAbi,
                         functionName: 'coins',
-                        args: [BigInt(1)] // PT
+                        args: [BigInt(1)], // PT
                     }
                 ]
             });
@@ -158,7 +158,8 @@ class SpectraCreateProposal extends CreateProposal {
                             functionName: 'symbol',
                         }
                     ],
-                    allowFailure: true
+                    allowFailure: true,
+                    authorizationList: undefined,
                 });
 
                 const s = resSymbol.shift();
