@@ -444,7 +444,8 @@ const getAngleVotingPower = async (snapshotTimestamp: number): Promise<bigint | 
         address: ANGLE_GOVERNOR as `0x${string}`,
         abi: AngleGovernorABI,
         functionName: 'getVotes',
-        args: [ANGLE_LOCKER, snapshotTimestamp]
+        args: [ANGLE_LOCKER, snapshotTimestamp],
+        authorizationList: undefined,
     });
 
     return BigInt(response as any) || undefined;
