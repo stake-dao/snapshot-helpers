@@ -127,6 +127,7 @@ export const checkCurveVotes = async (onchainVotes: IProposalMessageForOperation
             abi,
             functionName: 'getVoterState',
             args: [BigInt(curvesVote.args[0]), CRV_LOCKER],
+            authorizationList: undefined,
         });
 
         // Check if vote still tag as "Absent"
