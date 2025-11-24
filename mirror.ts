@@ -73,7 +73,7 @@ const handleBasicSnaphsot = async (space: string) => {
     const result = await fetchProtocolProposal({ space, minCreated });
     for (const proposal of result) {
         let end = proposal.end;
-        if (space === 'cakevote.eth' || space === 'spectradao.eth') {
+        if (space === 'cakevote.eth' || space === 'spectradao.eth' || space === 'balancer.eth') {
             end = proposal.end - DELAY_ONE_DAYS;
         } else {
             end = proposal.end - DELAY_TWO_DAYS;
