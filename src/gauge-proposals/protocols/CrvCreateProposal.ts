@@ -7,7 +7,6 @@ import * as dotenv from "dotenv";
 import { CreateProposal } from "../createProposal";
 import { sleep } from "../../../utils/sleep";
 import { CHAT_ID_ERROR, sendMessage } from "../../../utils/telegram";
-import fs from 'fs';
 
 dotenv.config();
 
