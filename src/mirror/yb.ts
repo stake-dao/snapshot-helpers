@@ -128,63 +128,11 @@ const fetchYbProposals = async (): Promise<YBProposal[]> => {
                 votingMode
                 __typename
             }
-            executed {
-                status
-                transactionHash
-                blockNumber
-                blockTimestamp
-                __typename
-            }
             __typename
         }    
     `, { chainId: 1 })) as any;
 
     return result.proposals;
-};
-
-/**
- * Get title from IPFS
- * @param hash IPFS hash
- * @returns title
- */
-const getLabel = async (hash: string) => {
-    try {
-        const { data } = await axios.get(`https://gateway.pinata.cloud/ipfs/${hash}`, {
-            headers: {
-                'Accept': 'Accept: text/plain'
-            }
-        });
-        return data.text;
-    }
-    catch (e) {
-        let found = false;
-        try {
-            const { data } = await axios.get("https://api-py.llama.airforce/curve/v1/dao/proposals");
-            for (const proposal of data.proposals) {
-                if (!proposal.ipfsMetadata) {
-                    continue;
-                }
-
-                if (proposal.ipfsMetadata.toLowerCase().indexOf(hash.toLowerCase()) > -1) {
-                    found = true;
-                    return proposal.metadata;
-                }
-            }
-        }
-        catch (e) {
-
-        }
-
-        if (!found) {
-            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror YB", `error pinata : https://gateway.pinata.cloud/ipfs/${hash}`)
-
-            console.log("error pinata : ", `https://gateway.pinata.cloud/ipfs/${hash}`);
-            console.log(e);
-            console.log("----");
-            const { data } = await axios.get(`https://api.ipfsbrowser.com/ipfs/get.php?hash=${hash}`);
-            return data.text;
-        }
-    }
 };
 
 /**
