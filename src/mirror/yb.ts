@@ -1,5 +1,4 @@
-import { createProposal, DELAY_THREE_DAYS, filterGaugesProposals, getBlockAt, getTelegramBot, TELEGRAM_BOT_MIRROR_CHAT_ID } from "./utils";
-import axios from "axios";
+import { createProposal, DELAY_THREE_DAYS, filterGaugesProposals, getBlockAt } from "./utils";
 import * as dotenv from "dotenv";
 import { fetchSDProposal, SnapshotProposal } from "./request";
 import { SD_YB_SPACE } from "./spaces";
