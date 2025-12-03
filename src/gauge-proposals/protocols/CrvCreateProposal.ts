@@ -1,7 +1,5 @@
-import { createPublicClient, formatUnits, http, parseAbi } from "viem";
-import axios from "axios";
+import { isAddress } from "viem";
 import * as chains from 'viem/chains'
-import * as lodhash from 'lodash';
 import moment from "moment";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { BytesLike, ethers } from "ethers";
@@ -9,7 +7,6 @@ import * as dotenv from "dotenv";
 import { CreateProposal } from "../createProposal";
 import { sleep } from "../../../utils/sleep";
 import { CHAT_ID_ERROR, sendMessage } from "../../../utils/telegram";
-import { CHAIN_ID_TO_RPC, CURVE_API, CURVE_GC, etherscans } from "../../../utils/constants";
 
 dotenv.config();
 
@@ -110,134 +107,71 @@ export class CrvCreateProposal extends CreateProposal {
     };
 
     protected async getGauges(snapshotBlock: number): Promise<string[]> {
-        const data = await axios.get(`${CURVE_API}/api/getAllGauges`);
-        const gaugesMap = data.data.data;
 
-        const publicClient = createPublicClient({
-            chain: chains.mainnet,
-            transport: http(CHAIN_ID_TO_RPC[1])
-        });
+        // Using native fetch to get gauges data
+        const [gaugesResponse, chainlistResponse] = await Promise.all([
+            fetch("https://votemarket-api.contact-69d.workers.dev/curve/gauges"),
+            fetch("https://chainlist.org/rpcs.json")
+        ])
 
-        const gcAbi = parseAbi([
-            'function gauge_types(address gauge) external view returns(int128)',
-            'function get_gauge_weight(address gauge) external view returns(uint256)',
-        ]);
 
-        const gaugesKeys = Object.keys(gaugesMap);
-        const calls: any[] = [];
-        const callsHistoricalWeights: any[] = [];
-        for (const key of gaugesKeys) {
-            if (gaugesMap[key].is_killed) {
-                continue;
-            }
-
-            const gaugeRoot = gaugesMap[key].rootGauge || gaugesMap[key].gauge;
-
-            calls.push({
-                address: CURVE_GC,
-                abi: gcAbi,
-                functionName: 'gauge_types',
-                args: [gaugeRoot]
-            });
-            calls.push({
-                address: CURVE_GC,
-                abi: gcAbi,
-                functionName: 'get_gauge_weight',
-                args: [gaugeRoot]
-            });
-            callsHistoricalWeights.push({
-                address: CURVE_GC,
-                abi: gcAbi,
-                functionName: 'get_gauge_weight',
-                args: [gaugeRoot]
-            });
+        // Fetch does not throw an error for non-200 status codes automatically, so we check it manually
+        if (!gaugesResponse.ok) {
+            throw new Error(`Failed to fetch gauges: ${gaugesResponse.statusText}`);
+        }
+        if (!chainlistResponse.ok) {
+            throw new Error(`Failed to fetch chainlist: ${chainlistResponse.statusText}`);
         }
 
-        let results: any[] = [];
-        let chunks = lodhash.chunk(calls, 50);
-        for (const c of chunks) {
-            // @ts-ignore
-            const res = await (publicClient.multicall({ contracts: c as any }) as any);
-            results = results.concat(res);
-        }
+        const data = await gaugesResponse.json();
+        const chainlist = await chainlistResponse.json();
 
-        let resultsHistoricalWeights: any[][] = [];
-        chunks = lodhash.chunk(callsHistoricalWeights, 50);
+        const responses: string[] = [];
 
-        const nbCheck = 10;
-        const lastBlock = snapshotBlock - (2 * 365 * 7200);
-        const pas = (snapshotBlock - lastBlock) / nbCheck;
-        for (let i = 0; i < nbCheck; i++) {
-            const _blockNumber = lastBlock + (i * pas);
-            resultsHistoricalWeights[i] = [];
-            for (const c of chunks) {
-                // @ts-ignore
-                const res = await (publicClient.multicall({ contracts: c as any, blockNumber: _blockNumber }) as any);
-                resultsHistoricalWeights[i] = resultsHistoricalWeights[i].concat(res);
-            }
-        }
+        const gaugesNotKilled = data.gauges.filter((g) => g.isKilled === false);
 
-        const etherscan = etherscans.find((etherscan) => etherscan.chain === chains.mainnet);
-        const now = moment().unix();
-
-        const response: string[] = [];
-        for (const key of gaugesKeys) {
-            if (gaugesMap[key].is_killed) {
-                continue;
+        for (const gauge of gaugesNotKilled) {
+            let pool = gauge.pool;
+            if (isAddress(pool)) {
+                pool = `${pool.substring(0, 6)}${this.SEP_DOT}${pool.substring(pool.length-4)}`
             }
 
-            const gaugeAdded = results.shift()?.error === undefined;
-            const gaugeWeight = results.shift();
+            let chainName = "";
+            if (gauge.chainId !== chains.mainnet.id) {
+                chainName = chainlist.find((chain) => chain.isTestnet === false && chain.chainId === gauge.chainId)?.chainSlug || "";
+                chainName = `${chainName}`
+            }
 
-            let nbHistoricalWeightsToZero = 0;
-            for (let i = 0; i < nbCheck; i++) {
-                const gaugeHistoricalWeight = resultsHistoricalWeights[i].shift();
-                if (gaugeHistoricalWeight.status === 'success') {
-                    const hgw = parseFloat(formatUnits(gaugeHistoricalWeight?.result, 18));
-                    if (hgw === 0) {
-                        nbHistoricalWeightsToZero++;
+            const childGauge = gauge.childGauge || "";
+            const gaugeExtractedAddress = this.extractAddress(childGauge.length > 0 ? childGauge : gauge.gauge);
+
+            if (gauge.name.indexOf("Lending") > -1) {
+                const chainDetails = chainName.length > 0 ? `[${chainName}] ` : "";
+                const collateralName = gauge.coins.find((coin) => coin.symbol !== "crvUSD")?.symbol || "";
+
+                responses.push(`${chainDetails}Lending: Borrow crvUSD (${collateralName} collateral) (${pool}) - ${gaugeExtractedAddress.toLowerCase()}`);
+            } else {
+                let shortName = gauge.coins.map((coin) => coin.symbol).join("+");
+                /*let shortName = gauge.shortName;
+                let index = shortName.indexOf(" ");
+                if (index > -1) {
+                    shortName = shortName.substring(0, index).trim();
+                }*/
+                
+
+                if(chainName.length > 0) {
+                    chainName = `${chainName}-`
+
+                    const indexDash = shortName.indexOf("-")
+                    if(indexDash > -1) {
+                       // shortName = shortName.substring(indexDash + 1)
                     }
                 }
+
+                responses.push(`${chainName}${shortName} (${pool}) - ${gaugeExtractedAddress.toLowerCase()}`);
             }
-
-            if (!gaugeAdded) {
-                continue;
-            }
-
-            if (gaugeWeight.status === 'success') {
-                const gw = parseFloat(formatUnits(gaugeWeight?.result, 18));
-                if (gw === 0) {
-                    // Check age
-                    /*try {
-                        
-                        if (etherscan) {
-                            const gaugeRoot = gaugesMap[key].rootGauge || gaugesMap[key].gauge;
-
-                            const url = `https://api.etherscan.io/v2/api?chainid=1&module=contract&action=getcontractcreation&contractaddresses=${gaugeRoot}&apikey=${etherscan.apiKey}`;
-                            const { data: resp } = await axios.get(url);
-                            // Rate limite
-                            await sleep(200)
-                            if (resp.result?.length > 0) {
-                                const createdTimestamp = parseInt(resp.result[0].timestamp);
-                                const isOldTwoYears = (now - createdTimestamp) >= (((2 * 365)) * 86400)
-                                if (isOldTwoYears) {
-                                    // Skip
-                                    continue;
-                                }
-                            }
-                        }
-
-                    }
-                    catch (e) {
-                        console.log(gaugesMap[key].rootGauge || gaugesMap[key].gauge, e)
-                    }*/
-                }
-            }
-
-            const gauge = gaugesMap[key].gauge as string;
-            response.push(key + " - " + this.extractAddress(gauge));
         }
 
-        return response;
+        return responses;
     }
 }
