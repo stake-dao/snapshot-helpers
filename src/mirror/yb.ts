@@ -1,27 +1,11 @@
-import { createProposal, DELAY_THREE_DAYS, filterGaugesProposals, getBlockAt } from "./utils";
+import { createProposal, DELAY_THREE_DAYS, fetchYbProposals, filterGaugesProposals, getBlockAt, YBProposal } from "./utils";
 import * as dotenv from "dotenv";
 import { fetchSDProposal, SnapshotProposal } from "./request";
 import { SD_YB_SPACE } from "./spaces";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
-import { request, gql } from "graphql-request";
 import moment from "moment";
 
-interface YBProposal {
-    id: string;
-    incrementalId: number;
-    chainId: number;
-    title: string;
-    description: string | null,
-    summary: string;
-    proposalIndex: string;
-    snapshotTimestamp: number;
-    startDate: number;
-    endDate: number;
-    createdAt: number;
-    settings: {
-        votingMode: number;
-    }
-}
+
 
 dotenv.config();
 
@@ -64,7 +48,7 @@ const mirrorYB = async () => {
             type: "single-choice",
             title,
             body: data.summary,
-            choices: ["Yes", "No"],
+            choices: ["Yes", "No", "Abstain"],
             start: data.startDate,
             end,
             snapshot,
@@ -89,50 +73,7 @@ function removeUrls(text: string): string {
     return text.replace(/https?:\/\/[^\s]+/g, '').trim();
 }
 
-/**
- * Fetch proposals on curvemonitor
- * @returns last 1000 proposals
- */
-const fetchYbProposals = async (): Promise<YBProposal[]> => {
-    const result = (await request("https://data.yieldbasis.com/api/v1/graphql", gql`
-        query GetAllProposals($chainId: Int!) {
-            proposals: Proposal(limit: 1000, where: {chainId: {_eq: $chainId}}) {
-                ...ProposalFields
-                __typename
-            }
-        }
 
-        fragment ParameterFieldsFragment on ActionParameter {
-            id
-            name
-            notice
-            parameterType
-            value
-            __typename
-        }
-
-        fragment ProposalFields on Proposal {
-            id
-            incrementalId
-            chainId
-            title
-            description
-            summary
-            proposalIndex
-            snapshotTimestamp
-            startDate
-            endDate
-            createdAt
-            settings {
-                votingMode
-                __typename
-            }
-            __typename
-        }    
-    `, { chainId: 1 })) as any;
-
-    return result.proposals;
-};
 
 /**
  * Get proposal not added, ie : SD proposals don't contain link
@@ -148,7 +89,7 @@ const removeProposalAdded = (proposals: YBProposal[], snapshotProposals: Snapsho
 }
 
 const getTitle = (proposal: YBProposal): string => {
-    return `#${proposal.incrementalId} - ${proposal.title}`;
+    return `${proposal.incrementalId}# ${proposal.title}`;
 }
 
 mirrorYB().catch((e) => {
