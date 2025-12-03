@@ -20,6 +20,7 @@ import { checkCurveVotes, votesFromSafeModule } from "./voterSafeModule";
 import { IProposalMessageForOperationChannel } from "./interfaces/IProposalMessageForOperationChannel";
 import { CURVE_OWNERSHIP_VOTER, CURVE_PARAMETER_VOTER } from "./addresses";
 import { getProposalById } from "../../utils/snapshot";
+import { SD_YB_SPACE } from "../mirror/spaces";
 
 dotenv.config();
 
@@ -57,7 +58,7 @@ const spaces: Record<string, string> = {
     //"sdcake.eth": "CAKE",
     "sdbpt.eth": "BPT",
     "sdynd.eth": "YND",
-    "sd-yieldbasis.eth": "YB",
+    [SD_YB_SPACE]: "YB",
 }
 
 var originSpaces: Record<string, string | string[]> = {

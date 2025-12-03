@@ -34,6 +34,7 @@
     "bi-weekly-sdyfi-vote": "npx ts-node src/gauge-proposals/yfi.ts",
     "mirror": "npx ts-node mirror.ts",
     "mirror-crv": "npx ts-node src/mirror/crv.ts",
+    "mirror-yb": "npx ts-node src/mirror/yb.ts",
     "replication": "npx ts-node src/replication/replication.ts",
     "replication-old": "npx ts-node src/replication/replication_old.ts",
     "test": "npx ts-node utils/telegram.ts"

@@ -131,7 +131,11 @@ const getMainnetSnapshotBlock = async (publicClient: any, payload: any): Promise
         includeTransactions: false
     });
 
-    const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${Number(block.timestamp)}`);
-    const mainnetBlock = mainnetBlockRes.height;
+    const mainnetBlock = await getBlockAt(Number(block.timestamp));
     return mainnetBlock.toString()
+}
+
+export const getBlockAt = async (timestamp: number): Promise<number> => {
+    const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp}`);
+    return mainnetBlockRes.height;
 }

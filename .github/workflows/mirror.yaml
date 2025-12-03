@@ -33,6 +33,7 @@ jobs:
       - run: npm install
       - run: npm run mirror
       - run: npm run mirror-crv
+      - run: npm run mirror-yb
       - run: npm run replication
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
