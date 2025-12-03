@@ -11,7 +11,7 @@ import * as lodhash from 'lodash';
 import * as linkify from "linkifyjs";
 import CurveVoterABI from '../../abis/CurveVoter.json';
 import AngleGovernorABI from '../../abis/AngleGovernor.json';
-import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseAbi, parseUnits } from "viem";
+import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseAbi, parseEther, parseUnits } from "viem";
 import * as chains from 'viem/chains'
 import { ANGLE_ONCHAIN_SUBGRAPH_URL, CHAIN_ID_TO_RPC, MS_ADDRESS } from "../../utils/constants";
 import { SafeTransactionHelper, TenderlyConfig } from "../../utils/safe-proposer/safe-transaction";
@@ -649,19 +649,22 @@ const getProposalMessageForOperationChannelForOneSpace = async (proposal: Propos
                         votingAddress = CURVE_PARAMETER_VOTER;
                     }
 
-                    // Get PCT_BASE
-                    const pctBase = Number(BigInt("1000000000000000000"))// await getPctBase(votingAddress);
-                    if (pctBase === undefined) {
-                        text += "❌ Error when fetch PCT_BASE\n"
-                    } else {
-                        text += "Vote id : " + voteId + "\n"
-                        //text += "Voter : " + CURVE_VOTER + "\n"
-                        //text += "Voting address : " + votingAddress + "\n"
+                    const pctBase = BigInt("1000000000000000000"); // or await getPctBase(votingAddress);
 
-                        const yeaBN = Math.floor(yea / totalVotes * pctBase);
+                    if (pctBase === undefined) {
+                        text += "❌ Error when fetch PCT_BASE\n";
+                    } else {
+                        text += "Vote id : " + voteId + "\n";
+
+                        const yeaBig = parseEther(yea.toString());
+                        const totalVotesBig = parseEther(totalVotes.toString())
+
+                        const yeaBN = (yeaBig * pctBase) / totalVotesBig;
+
                         const nayBN = pctBase - yeaBN;
 
-                        args = [BigInt(voteId), BigInt(yeaBN), BigInt(nayBN), votingAddress];
+                        args = [BigInt(voteId), yeaBN, nayBN, votingAddress];
+
                         payload = encodeFunctionData({
                             abi: CurveVoterABI,
                             functionName: 'votePct',
@@ -670,8 +673,7 @@ const getProposalMessageForOperationChannelForOneSpace = async (proposal: Propos
 
                         voter = CURVE_VOTER;
 
-                        //text += "Payload : " + payload + "\n"
-                        text += "Vote : (" + votes.join(",") + ")\n"
+                        text += "Vote : (" + votes.join(",") + ")\n";
                     }
                 }
             } else {
@@ -933,7 +935,7 @@ const sendOnchainVotes = async (onchainVotes: IProposalMessageForOperationChanne
 }
 
 const manualCrvVote = async () => {
-    const proposals = await getProposalById("0x771afcdab4dfbbda79da15bad64451b472d1030e48d4315f098ecb33e92cd067");
+    const proposals = await getProposalById("0xb336d4c14c20e20a126a6197eb8ce8fb40f5a1121d1834d6b017c1ad3824230e");
     if (proposals.length !== 1) {
         return;
     }
