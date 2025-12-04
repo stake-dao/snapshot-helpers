@@ -10,7 +10,6 @@ import { ProposalTally } from "../interfaces/yb";
 type VoteParam = { _voteId: bigint; _tally: ProposalTally; _tryEarlyExecution: boolean; }
 type VoteParams = readonly VoteParam[];
 
-const VOTER_YB_SAFE_MODULE = "0x82499D0f7b0A648e8a99c8ab395c2cd3a9B7B8fD" as const;
 const YB_PLUGIN = getAddress("0xd7df8bd42e81a0fd68ac78254afdc0d7b6cbae9f");
 
 const abi = parseAbi([
@@ -52,7 +51,7 @@ export class YbVotingStrategy implements IVotingStrategy {
             // Simulate
             await publicClient.simulateContract({
                 account,
-                address: VOTER_YB_SAFE_MODULE,
+                address: YB_VOTER,
                 abi,
                 functionName: 'votes',
                 args: [args],
@@ -62,7 +61,7 @@ export class YbVotingStrategy implements IVotingStrategy {
             // Gas Estimation
             const data = encodeFunctionData({ abi, functionName: 'votes', args: [args] });
             const [gasLimit, { maxFeePerGas, maxPriorityFeePerGas }] = await Promise.all([
-                publicClient.estimateGas({ data, to: VOTER_YB_SAFE_MODULE, account }),
+                publicClient.estimateGas({ data, to: YB_VOTER, account }),
                 publicClient.estimateFeesPerGas()
             ]);
 
@@ -75,7 +74,7 @@ export class YbVotingStrategy implements IVotingStrategy {
 
             const hash = await walletClient.writeContract({
                 account,
-                address: VOTER_YB_SAFE_MODULE,
+                address: YB_VOTER,
                 abi,
                 functionName: 'votes',
                 args: [args],
