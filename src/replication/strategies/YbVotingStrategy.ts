@@ -1,23 +1,26 @@
-import { createPublicClient, createWalletClient, encodeFunctionData, http, parseAbi, TransactionReceipt } from "viem";
+import { createPublicClient, createWalletClient, encodeFunctionData, getAddress, http, parseAbi, TransactionReceipt } from "viem";
 import { IProposalMessageForOperationChannel } from "../interfaces/IProposalMessageForOperationChannel";
 import { IVotingStrategy, MIN_GAS_LIMIT } from "./IVotingStrategy";
-import { YB_VOTER } from "../addresses";
+import { YB_LOCKER, YB_VOTER } from "../addresses";
 import { privateKeyToAccount } from "viem/accounts";
 import { CHAIN_ID_TO_RPC } from "../../../utils/constants";
 import { mainnet } from "viem/chains";
 import { ProposalTally } from "../interfaces/yb";
 
-type VoteParam = { _voteId: bigint; _votes: ProposalTally; _tryEarlyExecution: boolean; }
+type VoteParam = { _voteId: bigint; _tally: ProposalTally; _tryEarlyExecution: boolean; }
 type VoteParams = readonly VoteParam[];
+
+const VOTER_YB_SAFE_MODULE = "0xb118fbE8B01dB24EdE7E87DFD19693cfca13e992" as const;
+const YB_PLUGIN = getAddress("0xd7df8bd42e81a0fd68ac78254afdc0d7b6cbae9f");
 
 const abi = parseAbi([
     'struct Tally { uint256 abstain; uint256 yes; uint256 no; }',
-    'function votes((uint256 _voteId, Tally _votes, bool _tryEarlyExecution)[] _votes) external',
-    'function getVoterState(uint256 voteId, address voter) external view returns(uint8)'
+    'function votes((uint256 _voteId, Tally _tally, bool _tryEarlyExecution)[] _votes) external',
+    'function getVotes(uint256 _proposalId, address _account) external view returns(Tally memory)'
 ]);
 
 export class YbVotingStrategy implements IVotingStrategy {
-    public name = "Yearn";
+    public name = "YB";
 
     filterVotes(votes: IProposalMessageForOperationChannel[]): IProposalMessageForOperationChannel[] {
         return votes.filter((vote) => vote.voter === YB_VOTER);
@@ -27,18 +30,18 @@ export class YbVotingStrategy implements IVotingStrategy {
         try {
 
             // Compute args
-            const args = votes.map((curvesVote) => {
-                const tally = curvesVote.args[1] as any[];
+            const args = votes.map((vote) => {
+                const tally = vote.args[1] as ProposalTally;
                 return {
-                    _voteId: BigInt(curvesVote.args[0]), // vote id
-                    _votes: {
-                        abstain: BigInt(tally[0]),
-                        yes: BigInt(tally[1]),
-                        no: BigInt(tally[2]),
-                    },
-                    _tryEarlyExecution: curvesVote.args[2] as boolean,
+                    _voteId: BigInt(vote.args[0]), // vote id
+                    _tally: {
+                        abstain: BigInt(tally.abstain),
+                        yes: BigInt(tally.yes),
+                        no: BigInt(tally.no),
+                    } as ProposalTally,
+                    _tryEarlyExecution: vote.args[2] as boolean,
                 } as VoteParam;
-            }) as VoteParams;
+            }) as any;
 
             const account = privateKeyToAccount(process.env.SAFE_PROPOSER_PK as `0x${string}`);
             const rpcUrl = CHAIN_ID_TO_RPC[1];
@@ -49,7 +52,7 @@ export class YbVotingStrategy implements IVotingStrategy {
             // Simulate
             await publicClient.simulateContract({
                 account,
-                address: VOTER_CURVE_SAFE_MODULE,
+                address: VOTER_YB_SAFE_MODULE,
                 abi,
                 functionName: 'votes',
                 args: [args],
@@ -59,7 +62,7 @@ export class YbVotingStrategy implements IVotingStrategy {
             // Gas Estimation
             const data = encodeFunctionData({ abi, functionName: 'votes', args: [args] });
             const [gasLimit, { maxFeePerGas, maxPriorityFeePerGas }] = await Promise.all([
-                publicClient.estimateGas({ data, to: VOTER_CURVE_SAFE_MODULE, account }),
+                publicClient.estimateGas({ data, to: VOTER_YB_SAFE_MODULE, account }),
                 publicClient.estimateFeesPerGas()
             ]);
 
@@ -72,7 +75,7 @@ export class YbVotingStrategy implements IVotingStrategy {
 
             const hash = await walletClient.writeContract({
                 account,
-                address: VOTER_CURVE_SAFE_MODULE,
+                address: VOTER_YB_SAFE_MODULE,
                 abi,
                 functionName: 'votes',
                 args: [args],
@@ -90,10 +93,39 @@ export class YbVotingStrategy implements IVotingStrategy {
     }
 
     async verify(votes: IProposalMessageForOperationChannel[]): Promise<boolean> {
+        const rpcUrl = CHAIN_ID_TO_RPC[1];
+        const publicClient = createPublicClient({ chain: mainnet, transport: http(rpcUrl) });
+
+        for (const vote of votes) {
+            const tally = await publicClient.readContract({
+                address: YB_PLUGIN,
+                abi,
+                functionName: 'getVotes',
+                args: [BigInt(vote.args[0]), YB_LOCKER],
+                authorizationList: undefined,
+            });
+
+            // Check if vote is still "Absent" (0)
+            const total = tally.abstain + tally.no + tally.yes;
+            if (total === 0n) {
+                return false;
+            }
+        }
         return true;
     }
 
     formatSuccessMessage(votes: IProposalMessageForOperationChannel[], txHash: string): string {
-        return `✅ Yb Votes sent\nTx: ${txHash}`;
+        let message = "✅ Yb Votes sent\n";
+        for (const vote of votes) {
+            const tally = vote.args[1] as ProposalTally;
+            const total = tally.abstain + tally.no + tally.yes;
+            const yeaPercentage = Number(tally.yes * BigInt(100) / total);
+            const nayPercentage = Number(tally.no * BigInt(100) / total);
+            const abstainPercentage = Number(tally.abstain * BigInt(100) / total);
+
+            message += `✅ ${vote.proposalTitle}\n`;
+            message += `Result : Abstain ${abstainPercentage.toFixed(2)} - Yes ${yeaPercentage.toFixed(2)}% - No ${nayPercentage}%\n\n`;
+        }
+        return `Tx : <a href="https://etherscan.io/tx/${txHash}">etherscan.io</a>`;
     }
 }
