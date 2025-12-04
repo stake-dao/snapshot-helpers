@@ -11,15 +11,23 @@ import * as lodhash from 'lodash';
 import * as linkify from "linkifyjs";
 import CurveVoterABI from '../../abis/CurveVoter.json';
 import AngleGovernorABI from '../../abis/AngleGovernor.json';
-import { createPublicClient, encodeFunctionData, hexToBigInt, http, parseAbi, parseEther, parseUnits } from "viem";
+import { createPublicClient, encodeFunctionData, getAddress, hexToBigInt, http, parseAbi, parseEther, parseUnits } from "viem";
 import * as chains from 'viem/chains'
 import { ANGLE_ONCHAIN_SUBGRAPH_URL, CHAIN_ID_TO_RPC, MS_ADDRESS } from "../../utils/constants";
 import { SafeTransactionHelper, TenderlyConfig } from "../../utils/safe-proposer/safe-transaction";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
 import { checkCurveVotes, votesFromSafeModule } from "./voterSafeModule";
 import { IProposalMessageForOperationChannel } from "./interfaces/IProposalMessageForOperationChannel";
-import { CURVE_OWNERSHIP_VOTER, CURVE_PARAMETER_VOTER } from "./addresses";
+import { CURVE_OWNERSHIP_VOTER, CURVE_PARAMETER_VOTER, CURVE_VOTER, YB_LOCKER, YB_VOTER, YIELDBASIS_VOTER } from "./addresses";
 import { getProposalById } from "../../utils/snapshot";
+import { SD_YB_SPACE } from "../mirror/spaces";
+import { fetchYbProposals } from "../mirror/utils";
+import { ybVoterAbi } from "./abi/ybVoter";
+import { ProposalData } from "./interfaces/yb";
+import { getVotingPowerWithDecay } from "./ybUtils";
+import { IVotingStrategy } from "./strategies/IVotingStrategy";
+import { CurveVotingStrategy } from "./strategies/CurveVotingStrategy";
+import { YbVotingStrategy } from "./strategies/YbVotingStrategy";
 
 dotenv.config();
 
@@ -32,7 +40,6 @@ const API_TOKEN_SD = process.env.TG_API_KEY;
 const TELEGRAM_API = "https://api.telegram.org/bot" + API_TOKEN_SD + "/sendMessage"
 const TELEGRAM_CHANNEL_ID = "@MetaGovernanceSD"
 const TELEGRAM_GOVERNANCE_ID = "-1002204618754"
-const CURVE_VOTER = "0x20b22019406Cf990F0569a6161cf30B8e6651dDa"
 
 // ANGLE
 const ANGLE_GOVERNOR = "0x748bA9Cd5a5DDba5ABA70a4aC861b2413dCa4436"
@@ -57,7 +64,7 @@ const spaces: Record<string, string> = {
     //"sdcake.eth": "CAKE",
     "sdbpt.eth": "BPT",
     "sdynd.eth": "YND",
-    "sd-yieldbasis.eth": "YB",
+    [SD_YB_SPACE]: "YB",
 }
 
 var originSpaces: Record<string, string | string[]> = {
@@ -74,7 +81,13 @@ var originSpaces: Record<string, string | string[]> = {
     "sdcake.eth": "cakevote.eth",
     "sdbpt.eth": "blackpoolhq.eth",
     "sdynd.eth": ["ynd-gauges.eth", "ynd.eth"],
+    [SD_YB_SPACE]: "yb.eth",
 }
+
+const strategies: IVotingStrategy[] = [
+    new CurveVotingStrategy(),
+    new YbVotingStrategy()
+];
 
 interface Proposal {
     id: string;
@@ -556,9 +569,9 @@ const getProposalMessageForOperationChannel = async (proposal: Proposal, token: 
 
 const getProposalMessageForOperationChannelForOneSpace = async (proposal: Proposal, token: string, space: string, originSpace: string): Promise<IProposalMessageForOperationChannel | undefined> => {
     const isCurveProposal = originSpace == "curve.eth";
-
+    const isYbProposal = originSpace === "yb.eth";
     let isAngleOnChainProposal = false;
-    let isOnchainProposal = isCurveProposal;
+    let isOnchainProposal = isCurveProposal || isYbProposal;
     let deadline = proposal.end;
 
     if (originSpace === 'cakevote.eth' || originSpace === 'spectradao.eth') {
@@ -602,6 +615,7 @@ const getProposalMessageForOperationChannelForOneSpace = async (proposal: Propos
         const votes: string[] = [];
         let yea = 0;
         let nay = 0;
+        let abstain = 0;
         let totalVotes = 0;
 
         for (let i = 0; i < proposal.scores.length; i++) {
@@ -615,6 +629,8 @@ const getProposalMessageForOperationChannelForOneSpace = async (proposal: Propos
                 nay += score;
             } else if (choice === "Yes") {
                 yea += score;
+            } else if(choice === "Abstain") {
+                abstain += score;
             }
 
             totalVotes += score;
@@ -678,6 +694,54 @@ const getProposalMessageForOperationChannelForOneSpace = async (proposal: Propos
                 }
             } else {
                 text += "❌ Can't extract http link\n"
+            }
+        } else if (isYbProposal) {
+            const voteId = parseInt(proposal.title.split("#")[0]);
+
+            const ybProposals = await fetchYbProposals();
+            const ybProposal = ybProposals.find((p) => p.incrementalId === voteId);
+            if (ybProposal === undefined) {
+                text += "❌ Can't find YB proposal\n"
+            } else {
+                // Fetch proposal parameter
+                const votingPower = await getVotingPowerWithDecay(BigInt(ybProposal.proposalIndex), YB_LOCKER);
+
+                text += "Proposal ID: " + ybProposal.proposalIndex + "\n";
+                text += "Total Voting Power available: " + votingPower.toString() + "\n";
+
+                const yeaBig = parseEther(yea.toString());
+                const nayBig = parseEther(nay.toString());
+                const abstainBig = parseEther(abstain.toString());
+                const totalVotesBig = yeaBig + nayBig + abstainBig;
+
+                let yesAmount = 0n;
+                let noAmount = 0n;
+                let abstainAmount = 0n;
+
+                if (totalVotesBig > 0n) {
+                    yesAmount = (votingPower * yeaBig) / totalVotesBig;
+                    noAmount = (votingPower * nayBig) / totalVotesBig;
+
+                    abstainAmount = votingPower - yesAmount - noAmount;
+                } else {
+                    abstainAmount = votingPower;
+                }
+
+                text += `Split Vote calculated: (Yes: ${yesAmount}, No: ${noAmount}, Abstain: ${abstainAmount})\n`;
+
+                payload = encodeFunctionData({
+                    abi: ybVoterAbi,
+                    functionName: 'vote',
+                    args: [
+                        BigInt(ybProposal.proposalIndex),
+                        { abstain: abstainAmount, yes: yesAmount, no: noAmount },
+                        false
+                    ],
+                });
+
+                voter = YB_VOTER;
+
+                text += "Vote : (" + votes.join(",") + ")\n";
             }
         } else if (isAngleOnChainProposal) {
             if (proposal.choices.length === 3) {
@@ -896,38 +960,47 @@ const main = async () => {
 
 const sendOnchainVotes = async (onchainVotes: IProposalMessageForOperationChannel[]) => {
     // Push votes
-    if (onchainVotes.length > 0) {
+    if (onchainVotes.length === 0) {
+        return
+    }
+
+    // Loop through each strategy (Curve, Yearn, etc.)
+    for (const strategy of strategies) {
+        // 1. Filter votes relevant to this strategy
+        const strategyVotes = strategy.filterVotes(onchainVotes);
+
+        if (strategyVotes.length === 0) continue;
+
+        console.log(`Processing ${strategyVotes.length} votes for ${strategy.name}`);
+
         try {
-            const tx = await votesFromSafeModule(onchainVotes);
+            // 2. Execute Transaction
+            const tx = await strategy.execute(strategyVotes);
+
             if (tx === undefined) {
-                // error
-                const ids = onchainVotes.map((v) => v.args[0])
-                await sendTelegramMsgInSDGovChannel(`Error when sending votes ${ids.join("/")} from safe module, check logs @chago0x @pi3rrem`);
+                const ids = strategyVotes.map((v) => v.args[0]);
+                await sendTelegramMsgInSDGovChannel(`Error when sending ${strategy.name} votes ${ids.join("/")}, check logs @chago0x @pi3rrem`);
+
             } else if (tx !== null) {
-                const votesOk = await checkCurveVotes(onchainVotes);
-                let message = "";
+                // 3. Verify Votes
+                const votesOk = await strategy.verify(strategyVotes);
+
                 if (tx.status === "success" && votesOk) {
-                    for (const vote of onchainVotes) {
-                        const yea = BigInt(vote.args[1]);
-                        const nay = BigInt(vote.args[2]);
-                        const total = yea + nay;
-                        const yeaPercentage = Number(yea * BigInt(100) / total)
-                        const nayPercentage = Number(nay * BigInt(100) / total)
-
-                        message += `✅ ${vote.proposalTitle}\n`
-                        message += `Result : Yes ${yeaPercentage.toFixed(2)}% - No ${nayPercentage}%\n\n`
-                    }
+                    // 4. Format and Send Success Message
+                    const message = strategy.formatSuccessMessage(strategyVotes, tx.transactionHash);
+                    await sendTelegramMsgInSDGovChannel(message);
                 } else {
-                    message = `❌ Vote${onchainVotes.length > 1 ? "s" : ""}`;
-                    message += ` ${onchainVotes.map((vote) => vote.args[0].toString()).join("-")} sent from safe module but the tx reverted\n`;
+                    // Handling Revert or Verification failure
+                    let message = `❌ Vote${strategyVotes.length > 1 ? "s" : ""}`;
+                    // Assuming args[0] is the ID for the fallback error message
+                    message += ` ${strategyVotes.map((vote) => vote.args[0]?.toString()).join("-")} sent for ${strategy.name} but tx reverted or verify failed\n`;
+                    message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>`;
+
+                    await sendTelegramMsgInSDGovChannel(message);
                 }
-
-                message += `Tx : <a href="https://etherscan.io/tx/${tx.transactionHash}">etherscan.io</a>`;
-
-                await sendTelegramMsgInSDGovChannel(message);
             }
-        }
-        catch (e) {
+        } catch (e: any) {
+            // Global Error Handling
             await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", e.error_description || e.message || "");
             console.log(e);
         }

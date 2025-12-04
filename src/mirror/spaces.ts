@@ -1,4 +1,5 @@
 export const SDCRVGOV = "sdcrv-gov.eth";
+export const SD_YB_SPACE = "sd-yieldbasis.eth";
 
 export const SPACES: any = {
     "frax.eth": "sdfxs.eth",
@@ -13,4 +14,5 @@ export const SPACES: any = {
     "curve.eth": SDCRVGOV,
     "ynd.eth": "sdynd.eth",
     "ynd-gauges.eth": "sdynd.eth",
+    "yb.eth": SD_YB_SPACE,
 };

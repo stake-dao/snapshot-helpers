@@ -10,6 +10,7 @@ import * as chains from 'viem/chains'
 import axios from "axios";
 import { SPACES } from "./spaces";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
+import request, { gql } from "graphql-request";
 
 dotenv.config();
 
@@ -88,7 +89,7 @@ export const createProposal = async ({ payload }: any) => {
                 });
                 payload.snapshot = await getMainnetSnapshotBlock(publicClient, payload);
                 break;
-            } 
+            }
             default:
                 break;
         }
@@ -131,7 +132,69 @@ const getMainnetSnapshotBlock = async (publicClient: any, payload: any): Promise
         includeTransactions: false
     });
 
-    const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${Number(block.timestamp)}`);
-    const mainnetBlock = mainnetBlockRes.height;
+    const mainnetBlock = await getBlockAt(Number(block.timestamp));
     return mainnetBlock.toString()
 }
+
+export const getBlockAt = async (timestamp: number): Promise<number> => {
+    const { data: mainnetBlockRes } = await axios.get(`https://coins.llama.fi/block/ethereum/${timestamp}`);
+    return mainnetBlockRes.height;
+}
+
+export interface YBProposal {
+    id: string;
+    incrementalId: number;
+    chainId: number;
+    title: string;
+    description: string | null,
+    summary: string;
+    proposalIndex: string;
+    snapshotTimestamp: number;
+    startDate: number;
+    endDate: number;
+    createdAt: number;
+    settings: {
+        votingMode: number;
+    }
+}
+
+export const fetchYbProposals = async (): Promise<YBProposal[]> => {
+    const result = (await request("https://data.yieldbasis.com/api/v1/graphql", gql`
+        query GetAllProposals($chainId: Int!) {
+            proposals: Proposal(limit: 1000, where: {chainId: {_eq: $chainId}}) {
+                ...ProposalFields
+                __typename
+            }
+        }
+
+        fragment ParameterFieldsFragment on ActionParameter {
+            id
+            name
+            notice
+            parameterType
+            value
+            __typename
+        }
+
+        fragment ProposalFields on Proposal {
+            id
+            incrementalId
+            chainId
+            title
+            description
+            summary
+            proposalIndex
+            snapshotTimestamp
+            startDate
+            endDate
+            createdAt
+            settings {
+                votingMode
+                __typename
+            }
+            __typename
+        }    
+    `, { chainId: 1 })) as any;
+
+    return result.proposals;
+};

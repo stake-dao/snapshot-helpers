@@ -2,6 +2,7 @@ import axios from "axios";
 import moment from "moment";
 import * as dotenv from "dotenv";
 import { CreateProposal } from "../createProposal";
+import { SD_YB_SPACE } from "../../mirror/spaces";
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ export class YbCreateProposal extends CreateProposal {
     }
 
     public getSpace(): string {
-        return "sd-yieldbasis.eth";
+        return SD_YB_SPACE;
     }
 
     protected async getGauges(snapshotBlock: number): Promise<string[]> {
