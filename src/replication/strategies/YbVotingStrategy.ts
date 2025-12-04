@@ -10,7 +10,7 @@ import { ProposalTally } from "../interfaces/yb";
 type VoteParam = { _voteId: bigint; _tally: ProposalTally; _tryEarlyExecution: boolean; }
 type VoteParams = readonly VoteParam[];
 
-const VOTER_YB_SAFE_MODULE = "0xb118fbE8B01dB24EdE7E87DFD19693cfca13e992" as const;
+const VOTER_YB_SAFE_MODULE = "0x82499D0f7b0A648e8a99c8ab395c2cd3a9B7B8fD" as const;
 const YB_PLUGIN = getAddress("0xd7df8bd42e81a0fd68ac78254afdc0d7b6cbae9f");
 
 const abi = parseAbi([
