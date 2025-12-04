@@ -1,4 +1,4 @@
-import { createProposal, DELAY_THREE_DAYS, fetchYbProposals, filterGaugesProposals, getBlockAt, YBProposal } from "./utils";
+import { createProposal, DELAY_ONE_DAYS, DELAY_THREE_DAYS, fetchYbProposals, filterGaugesProposals, getBlockAt, YBProposal } from "./utils";
 import * as dotenv from "dotenv";
 import { fetchSDProposal, SnapshotProposal } from "./request";
 import { SD_YB_SPACE } from "./spaces";
@@ -30,7 +30,7 @@ const mirrorYB = async () => {
 
     for (const data of result) {
         const title = getTitle(data);
-        const end = data.endDate - DELAY_THREE_DAYS;
+        const end = data.endDate - (DELAY_ONE_DAYS * 4);
         if (end < now) {
             console.log(`Not enough timee or ended for proposal ${title}`);
             continue;
