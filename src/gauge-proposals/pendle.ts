@@ -47,7 +47,7 @@ class PendleCreateProposal extends CreateProposal {
             do {
                 try {
                     countChain++;
-                    if (countChain === 80) {
+                    if (countChain === 3) {
                         await sleep(2 * 1000); // Sleep 2s to avoid rate limit from Pendle
                         countChain = 0;
                     }
@@ -61,10 +61,22 @@ class PendleCreateProposal extends CreateProposal {
                         run = false;
                     }
 
+                    const now = moment().utc();
+                    const nextWeek = moment(now).add(9, 'days').unix();       
+
                     for (const gauge of gauges) {
                         if (gauge.votable === false) {
                             continue;
                         }
+                        
+                        // Check expiry
+                        const expiry = Date.parse(gauge.expiry) / 1000;
+                        if(expiry < nextWeek) {
+                            console.log(`Pool ${gauge.proSymbol} / ${gauge.address} expired`)
+                            continue;
+                        }
+
+
 
                         let name = gauge.pt.name;
                         if (name.indexOf("PT ") > -1) {
@@ -77,6 +89,7 @@ class PendleCreateProposal extends CreateProposal {
                     }
                 }
                 catch (e) {
+                    console.log(e)
                     run = false;
                 }
             }
