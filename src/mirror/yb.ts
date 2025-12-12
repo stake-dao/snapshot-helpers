@@ -26,13 +26,13 @@ const mirrorYB = async () => {
         return;
     }
 
-    const now = moment.now()
+    const now = moment().unix();
 
     for (const data of result) {
         const title = getTitle(data);
         const end = data.endDate - (DELAY_ONE_DAYS * 4);
         if (end < now) {
-            console.log(`Not enough timee or ended for proposal ${title}`);
+            console.log(`Not enough time or ended for proposal ${title}`);
             continue;
         }
 
