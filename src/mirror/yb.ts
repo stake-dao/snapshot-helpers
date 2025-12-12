@@ -16,7 +16,7 @@ const mirrorYB = async () => {
     const sdResult = await fetchSDProposal({ space: SD_YB_SPACE });
     const sdProposals = filterGaugesProposals(sdResult);
 
-    // Fetch last 1000 on curvemonitor
+    // Fetch last 1000
     const currentProposals = await fetchYbProposals();
 
     // Remove proposals already added
