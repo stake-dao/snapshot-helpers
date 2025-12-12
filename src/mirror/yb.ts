@@ -36,10 +36,10 @@ const mirrorYB = async () => {
             continue;
         }
 
-        if (data.settings.votingMode === 1) {
+        /*if (data.settings.votingMode === 1) {
             console.log(`Early mode activated for proposal ${title}, skip it`);
             continue;
-        }
+        }*/
 
         const snapshot = await getBlockAt(data.snapshotTimestamp);
 
