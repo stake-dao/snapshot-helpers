@@ -703,45 +703,50 @@ const getProposalMessageForOperationChannelForOneSpace = async (proposal: Propos
             if (ybProposal === undefined) {
                 text += "❌ Can't find YB proposal\n"
             } else {
-                // Fetch proposal parameter
-                const votingPower = await getVotingPowerWithDecay(BigInt(ybProposal.proposalIndex), YB_LOCKER);
-
-                text += "Proposal ID: " + ybProposal.proposalIndex + "\n";
-                text += "Total Voting Power available: " + votingPower.toString() + "\n";
-
-                const yeaBig = parseEther(yea.toString());
-                const nayBig = parseEther(nay.toString());
-                const abstainBig = parseEther(abstain.toString());
-                const totalVotesBig = yeaBig + nayBig + abstainBig;
-
-                let yesAmount = 0n;
-                let noAmount = 0n;
-                let abstainAmount = 0n;
-
-                if (totalVotesBig > 0n) {
-                    yesAmount = (votingPower * yeaBig) / totalVotesBig;
-                    noAmount = (votingPower * nayBig) / totalVotesBig;
-
-                    abstainAmount = votingPower - yesAmount - noAmount;
+                if (ybProposal.executed.blockNumber > 0) {
+                    text += "❌ YB proposal already executed\n"
                 } else {
-                    abstainAmount = votingPower;
-                }
+                    // Fetch proposal parameter
+                    const votingPower = await getVotingPowerWithDecay(BigInt(ybProposal.proposalIndex), YB_LOCKER);
 
-                text += `Split Vote calculated: (Yes: ${yesAmount}, No: ${noAmount}, Abstain: ${abstainAmount})\n`;
+                    text += "Proposal ID: " + ybProposal.proposalIndex + "\n";
+                    text += "Total Voting Power available: " + votingPower.toString() + "\n";
 
-                payload = encodeFunctionData({
-                    abi: ybVoterAbi,
-                    functionName: 'vote',
-                    args: [
-                        BigInt(ybProposal.proposalIndex),
-                        { abstain: abstainAmount, yes: yesAmount, no: noAmount },
+                    const yeaBig = parseEther(yea.toString());
+                    const nayBig = parseEther(nay.toString());
+                    const abstainBig = parseEther(abstain.toString());
+                    const totalVotesBig = yeaBig + nayBig + abstainBig;
+
+                    let yesAmount = 0n;
+                    let noAmount = 0n;
+                    let abstainAmount = 0n;
+
+                    if (totalVotesBig > 0n) {
+                        yesAmount = (votingPower * yeaBig) / totalVotesBig;
+                        noAmount = (votingPower * nayBig) / totalVotesBig;
+
+                        abstainAmount = votingPower - yesAmount - noAmount;
+                    } else {
+                        abstainAmount = votingPower;
+                    }
+
+                    text += `Split Vote calculated: (Yes: ${yesAmount}, No: ${noAmount}, Abstain: ${abstainAmount})\n`;
+
+                    args = [BigInt(ybProposal.proposalIndex),
+                    { abstain: abstainAmount, yes: yesAmount, no: noAmount },
                         false
-                    ],
-                });
+                    ];
 
-                voter = YB_VOTER;
+                    payload = encodeFunctionData({
+                        abi: ybVoterAbi,
+                        functionName: 'vote',
+                        args: args as any,
+                    });
 
-                text += "Vote : (" + votes.join(",") + ")\n";
+                    voter = YB_VOTER;
+
+                    text += "Vote : (" + votes.join(",") + ")\n";
+                }
             }
         } else if (isAngleOnChainProposal) {
             if (proposal.choices.length === 3) {

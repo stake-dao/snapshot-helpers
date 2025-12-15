@@ -155,6 +155,10 @@ export interface YBProposal {
     createdAt: number;
     settings: {
         votingMode: number;
+    };
+    executed: {
+        blockNumber: number;
+        blockTimestamp: number;
     }
 }
 
@@ -190,6 +194,11 @@ export const fetchYbProposals = async (): Promise<YBProposal[]> => {
             createdAt
             settings {
                 votingMode
+                __typename
+            }
+            executed {
+                blockNumber
+                blockTimestamp
                 __typename
             }
             __typename
