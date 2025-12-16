@@ -849,7 +849,7 @@ const formatSnapshotMessage = (proposalMessage: IProposalMessageForOperationChan
     const lines = proposalMessage.text.split("\n");
     const voteReplicated = lines.pop()
 
-    lines.push(`Deadline : ${moment.unix(proposalMessage.deadline).format("LLL")} @chago0x @hubirb`);
+    lines.push(`Deadline : ${moment.unix(proposalMessage.deadline).format("LLL")}`);
     lines.push(voteReplicated);
 
     return lines.join("\n");
