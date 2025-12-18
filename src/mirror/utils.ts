@@ -161,13 +161,23 @@ export interface YBProposal {
         blockTimestamp: number;
     }
 }
+
 export const fetchYbProposals = async (): Promise<YBProposal[]> => {
-    const query = `
+    const result = (await request("https://data.yieldbasis.com/api/v1/graphql", gql`
         query GetAllProposals($chainId: Int!) {
             proposals: Proposal(limit: 1000, where: {chainId: {_eq: $chainId}}) {
                 ...ProposalFields
                 __typename
             }
+        }
+
+        fragment ParameterFieldsFragment on ActionParameter {
+            id
+            name
+            notice
+            parameterType
+            value
+            __typename
         }
 
         fragment ProposalFields on Proposal {
@@ -192,20 +202,8 @@ export const fetchYbProposals = async (): Promise<YBProposal[]> => {
                 __typename
             }
             __typename
-        }
-    `;
+        }    
+    `, { chainId: 1 })) as any;
 
-    try {
-        const response = await axios.post("https://data.yieldbasis.com/api/v1/graphql", {
-            query: query,
-            variables: { chainId: 1 }
-        });
-
-        // Axios met les données dans .data, et GraphQL met sa réponse dans .data.data
-        return response.data.data.proposals;
-
-    } catch (error) {
-        console.error("Erreur lors du fetch des proposals:", error);
-        return [];
-    }
+    return result.proposals;
 };
