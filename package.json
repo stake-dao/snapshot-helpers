@@ -37,6 +37,7 @@
     "mirror-yb": "npx ts-node src/mirror/yb.ts",
     "replication": "npx ts-node src/replication/replication.ts",
     "replication-old": "npx ts-node src/replication/replication_old.ts",
+    "manual-yb-vote": "npx ts-node --transpile-only src/replication/manualYbVote.ts",
     "test": "npx ts-node utils/telegram.ts"
   }
 }

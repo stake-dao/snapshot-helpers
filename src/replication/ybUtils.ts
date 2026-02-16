@@ -2,6 +2,7 @@ import { Address, createPublicClient, http, PublicClient } from "viem";
 import { ybTokenAbi, ybVoterAbi } from "./abi/ybVoter";
 import { YIELDBASIS_VOTER } from "./addresses";
 import { mainnet } from "viem/chains";
+import { CHAIN_ID_TO_RPC } from "../../utils/constants";
 
 function calculateDecayedVotingPower(
     snapshotPower: bigint,
@@ -45,7 +46,7 @@ export async function getVotingPowerWithDecay(
 ): Promise<bigint> {
     const client = createPublicClient({
         chain: mainnet,
-        transport: http()
+        transport: http(CHAIN_ID_TO_RPC[1])
     });
 
     console.log(`Calculating voting power for ${accountAddress} on proposal ${proposalId}...`);

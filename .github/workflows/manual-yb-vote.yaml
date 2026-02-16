@@ -1,0 +1,28 @@
+name: "Manual YB Vote"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "test (Tenderly simulation) or execute (on-chain tx)"
+        required: true
+        type: choice
+        options:
+          - test
+          - execute
+        default: test
+
+env:
+  WEB3_ALCHEMY_API_KEY: ${{ secrets.WEB3_ALCHEMY_API_KEY }}
+  TENDERLY_ACCESS_KEY: ${{ secrets.TENDERLY_ACCESS_KEY }}
+  TENDERLY_ACCOUNT_SLUG: ${{ secrets.TENDERLY_ACCOUNT_SLUG }}
+  TENDERLY_PROJECT_SLUG: ${{ secrets.TENDERLY_PROJECT_SLUG }}
+  SAFE_PROPOSER_PK: ${{ inputs.mode == 'execute' && secrets.SAFE_PROPOSER_PK || '' }}
+
+jobs:
+  manual-yb-vote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm run manual-yb-vote -- ${{ inputs.mode }}
