@@ -10,7 +10,7 @@ import { ProposalTally } from "../interfaces/yb";
 type VoteParam = { _voteId: bigint; _tally: ProposalTally; _tryEarlyExecution: boolean; }
 type VoteParams = readonly VoteParam[];
 
-const YB_PLUGIN = getAddress("0xd7df8bd42e81a0fd68ac78254afdc0d7b6cbae9f");
+const YB_PLUGIN = getAddress("0x2be6670DE1cCEC715bDBBa2e3A6C1A05E496ec78");
 
 const abi = parseAbi([
     'struct Tally { uint256 abstain; uint256 yes; uint256 no; }',
