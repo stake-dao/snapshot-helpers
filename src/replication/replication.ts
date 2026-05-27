@@ -1077,6 +1077,29 @@ const manualCrvVote = async () => {
     //await sendOnchainVotes(onchainVotes);
 }
 
+
+const manualYbVote = async () => {
+    const proposals = await getProposalById("0x3b97c9cdd403a8141c97092605356d70ad669912492590019e7fc2a7e5d84b3f");
+    if (proposals.length !== 1) {
+        return;
+    }
+    const space = "sd-yieldbasis.eth";
+    const proposal = proposals[0]
+
+    const onchainVotes: IProposalMessageForOperationChannel[] = [];
+    const message = await getProposalMessageForOperationChannel(proposal, spaces[space], space);
+    if (message) {
+        if (message.isOnchainProposal) {
+            onchainVotes.push(message);
+        } else {
+            await sendTelegramMsgInSDGovChannel(formatSnapshotMessage(message));
+        }
+    }
+
+    await sendOnchainVotes(onchainVotes);
+    //console.log("onchainVotes", onchainVotes[0].args)
+}
+
 main().catch((e) => {
     console.error(e);
     sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Replication", `${e.error_description || e.message || ""}`)
