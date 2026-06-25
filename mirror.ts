@@ -2,7 +2,7 @@ import { request, gql } from "graphql-request";
 import axios from "axios";
 import * as dotenv from "dotenv";
 import { ANGLE_ONCHAIN_SUBGRAPH_URL } from "./utils/constants";
-import { fetchSDProposal, SNAPSHOT_URL } from "./src/mirror/request";
+import { fetchSDProposal, requestWithRetry, SNAPSHOT_URL } from "./src/mirror/request";
 import { createProposal, DEFAULT_MIN_TS, DELAY_ONE_DAYS, DELAY_TWO_DAYS, filterGaugesProposals } from "./src/mirror/utils";
 import { SPACES } from "./src/mirror/spaces";
 import { CHAT_ID_ERROR, sendMessage } from "./utils/telegram";
@@ -54,7 +54,7 @@ const SPACES_DEFAULT_MIN_TS: any = {
 };
 
 const fetchProtocolProposal = async ({ space, minCreated = DEFAULT_MIN_TS }: any) => {
-    const result = (await request(`${SNAPSHOT_URL}/graphql`, QUERY, {
+    const result = (await requestWithRetry(`${SNAPSHOT_URL}/graphql`, QUERY, {
         spaces: [space],
         minCreated: minCreated,
     })) as any;
