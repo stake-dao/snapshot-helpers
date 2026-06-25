@@ -1,5 +1,5 @@
-import { SNAPSHOT_URL } from "./request";
-import { request, gql } from "graphql-request";
+import { SNAPSHOT_URL, nativeFetch } from "./request";
+import { GraphQLClient, gql } from "graphql-request";
 
 // https://github.com/snapshot-labs/snapshot.js/blob/master/src/schemas/proposal.json
 export const MAX_LENGTH_TITLE = 256;
@@ -48,7 +48,8 @@ query Proposal($id: String) {
 `;
 
 export const fetchNbActiveProtocolProposal = async (author: string) => {
-    const result = (await request(`${SNAPSHOT_URL}/graphql`, QUERY_ACTIVE, {
+    const client = new GraphQLClient(`${SNAPSHOT_URL}/graphql`, { fetch: nativeFetch });
+    const result = (await client.request(QUERY_ACTIVE, {
         author
     })) as any;
     return result.proposals.length;

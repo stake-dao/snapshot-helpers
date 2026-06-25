@@ -6,8 +6,8 @@ import moment from "moment";
 import * as momentTimezone from "moment-timezone";
 import * as chains from 'viem/chains'
 import * as dotenv from "dotenv";
-import request from "graphql-request";
-import { SNAPSHOT_URL } from "../mirror/request";
+import { GraphQLClient } from "graphql-request";
+import { SNAPSHOT_URL, nativeFetch } from "../mirror/request";
 import { QUERY_BY_ID } from "../mirror/snapshotUtils";
 dotenv.config();
 
@@ -250,7 +250,8 @@ export abstract class CreateProposal {
     }
 
     public async manualVote(proposalId: string): Promise<void> {
-        const result = (await request(`${SNAPSHOT_URL}/graphql`, QUERY_BY_ID, {
+        const client = new GraphQLClient(`${SNAPSHOT_URL}/graphql`, { fetch: nativeFetch });
+        const result = (await client.request(QUERY_BY_ID, {
             id: proposalId
         })) as any;
 

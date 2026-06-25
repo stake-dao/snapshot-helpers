@@ -1,4 +1,5 @@
 import { gql, GraphQLClient } from "graphql-request";
+import { nativeFetch } from "../mirror/request";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { Wallet } from "@ethersproject/wallet";
@@ -47,7 +48,7 @@ const ANGLE_LOCKER = "0xD13F8C25CceD32cdfA79EB5eD654Ce3e484dCAF5"
 const ANGLE_VOTER = "0x0E0F27b9d5F2bc742Bf547968d2f07dECBCf1A23"
 
 // Snapshot
-const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql');
+const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql', { fetch: nativeFetch });
 const HUB_CLIENT = 'https://hub.snapshot.org';
 
 const spaces: Record<string, string> = {
