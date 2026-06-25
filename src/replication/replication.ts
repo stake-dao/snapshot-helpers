@@ -396,7 +396,7 @@ const _getOriginalProposal = async (proposal: Proposal, space: string, originSpa
 }
 
 const getOriginalAngleProposal = async (proposal: Proposal): Promise<AngleProposal | undefined> => {
-    const graphqlClient = new GraphQLClient(ANGLE_ONCHAIN_SUBGRAPH_URL);
+    const graphqlClient = new GraphQLClient(ANGLE_ONCHAIN_SUBGRAPH_URL, { fetch: nativeFetch });
 
     const graphqlRequest = gql`
         query {
