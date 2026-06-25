@@ -1,5 +1,6 @@
 import { CreateProposal } from "./createProposal";
-import request, { gql } from "graphql-request";
+import { GraphQLClient, gql } from "graphql-request";
+import { nativeFetch } from "../mirror/request";
 import moment from "moment";
 import { sleep } from "../../utils/sleep";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
@@ -58,7 +59,8 @@ class BalCreateProposal extends CreateProposal {
             }
         }`;
 
-        const data = (await request("https://api-v3.balancer.fi/", query)) as any;
+        const client = new GraphQLClient("https://api-v3.balancer.fi/", { fetch: nativeFetch });
+        const data = (await client.request(query)) as any;
         const gauges = data.veBalGetVotingList.filter((item: any) => !item.gauge.isKilled);
 
         const response: string[] = [];

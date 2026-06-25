@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 import { Wallet } from "ethers";
 import { JsonRpcProvider } from "@ethersproject/providers";
 import { CHAIN_ID_TO_RPC } from "../../utils/constants";
-import { SNAPSHOT_URL } from "./request";
+import { SNAPSHOT_URL, nativeFetch } from "./request";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { fetchNbActiveProtocolProposal, MAX_LENGTH_BODY, MAX_LENGTH_TITLE } from "./snapshotUtils";
 import { createPublicClient, http } from "viem";
@@ -10,7 +10,7 @@ import * as chains from 'viem/chains'
 import axios from "axios";
 import { SPACES } from "./spaces";
 import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
-import request, { gql } from "graphql-request";
+import { GraphQLClient, gql } from "graphql-request";
 
 dotenv.config();
 
@@ -163,7 +163,8 @@ export interface YBProposal {
 }
 
 export const fetchYbProposals = async (): Promise<YBProposal[]> => {
-    const result = (await request("https://data.yieldbasis.com/api/v1/graphql", gql`
+    const client = new GraphQLClient("https://data.yieldbasis.com/api/v1/graphql", { fetch: nativeFetch });
+    const result = (await client.request(gql`
         query GetAllProposals($chainId: Int!) {
             proposals: Proposal(limit: 1000, where: {chainId: {_eq: $chainId}}) {
                 ...ProposalFields
