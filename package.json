@@ -35,6 +35,8 @@
     "mirror": "npx ts-node mirror.ts",
     "mirror-crv": "npx ts-node src/mirror/crv.ts",
     "mirror-yb": "npx ts-node src/mirror/yb.ts",
+    "delete-proposals": "npx ts-node src/mirror/delete-proposals.ts",
+    "test:dedup": "npx ts-node src/mirror/dedup.test.ts",
     "replication": "npx ts-node src/replication/replication.ts",
     "replication-old": "npx ts-node src/replication/replication_old.ts",
     "manual-yb-vote": "npx ts-node --transpile-only src/replication/manualYbVote.ts",

@@ -4,7 +4,8 @@ import { JsonRpcProvider } from "@ethersproject/providers";
 import { CHAIN_ID_TO_RPC } from "../../utils/constants";
 import { SNAPSHOT_URL, nativeFetch } from "./request";
 import snapshot from "@snapshot-labs/snapshot.js";
-import { fetchNbActiveProtocolProposal, MAX_LENGTH_BODY, MAX_LENGTH_TITLE } from "./snapshotUtils";
+import { fetchActiveProposalsInSpace, fetchNbActiveProtocolProposal, hasProposalWithTitle, MAX_LENGTH_BODY, MAX_LENGTH_TITLE } from "./snapshotUtils";
+import { sleep } from "../../utils/sleep";
 import { createPublicClient, http } from "viem";
 import * as chains from 'viem/chains'
 import axios from "axios";
@@ -52,30 +53,43 @@ export const createProposal = async ({ payload }: any) => {
     const provider = new JsonRpcProvider(CHAIN_ID_TO_RPC[1]);
     const snapshotClient = new snapshot.Client712(SNAPSHOT_URL);
     const pks = [process.env.PK_1, process.env.PK_2, process.env.PK_3];
+    const targetSpace = SPACES[payload.space.id];
     let created = false;
+
+    let title = payload.title;
+    let body = payload.body;
+
+    if (title && title.length > MAX_LENGTH_TITLE) {
+        title = title.substring(0, MAX_LENGTH_TITLE - 3) + "...";
+    }
+
+    if (body && body.length > MAX_LENGTH_BODY) {
+        body = body.substring(0, MAX_LENGTH_BODY - 3) + "...";
+    }
+
+    title = title || "No title";
+    body = body || "No body";
 
     for (const pk of pks) {
         const signer = new Wallet(pk, (provider as any));
         const address = signer.address;
+
+        // Idempotency guard. snapshot.js' write can succeed on the hub while the
+        // client throws reading the response (ERR_STREAM_PREMATURE_CLOSE). That
+        // used to make the loop fail over to the next key and recreate the same
+        // proposal, once per key. Re-check the target space before each attempt
+        // so a proposal that already landed is never duplicated.
+        if (hasProposalWithTitle(await fetchActiveProposalsInSpace(targetSpace), title)) {
+            console.log("Proposal already active in " + targetSpace + ", skip: " + title);
+            created = true;
+            break;
+        }
+
         const nbActiveProposal = await fetchNbActiveProtocolProposal(address);
         if (nbActiveProposal >= 10) {
             console.log("nbActiveProposal > 10 => " + nbActiveProposal + ", we can't add proposal for " + payload.space.id)
             continue;
         }
-
-        let title = payload.title;
-        let body = payload.body;
-
-        if (title && title.length > MAX_LENGTH_TITLE) {
-            title = title.substring(0, MAX_LENGTH_TITLE - 3) + "...";
-        }
-
-        if (body && body.length > MAX_LENGTH_BODY) {
-            body = body.substring(0, MAX_LENGTH_BODY - 3) + "...";
-        }
-
-        title = title || "No title";
-        body = body || "No body";
 
         let network = "1"
         switch (payload.space.id) {
@@ -95,7 +109,7 @@ export const createProposal = async ({ payload }: any) => {
         }
 
         const proposal: any = {
-            space: SPACES[payload.space.id],
+            space: targetSpace,
             type: payload.type,
             title: title,
             name: title,
@@ -117,12 +131,21 @@ export const createProposal = async ({ payload }: any) => {
             break;
         } catch (e: any) {
             console.log("ERR", e);
-            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `Space ${SPACES[payload.space.id]} - ${e.error_description || e.message || ""}`)
+            await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `Space ${targetSpace} - ${e.error_description || e.message || ""}`)
+            // The write may have landed on the hub even though the client threw.
+            // Verify (after a short indexing delay) before failing over to the
+            // next key, otherwise we would create the proposal twice.
+            await sleep(2000);
+            if (hasProposalWithTitle(await fetchActiveProposalsInSpace(targetSpace), title)) {
+                console.log("Proposal created despite client error, not retrying: " + title);
+                created = true;
+                break;
+            }
         }
     }
 
     if (!created) {
-        await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `Space ${SPACES[payload.space.id]}`)
+        await sendMessage(process.env.TG_API_KEY_BOT_ERROR, CHAT_ID_ERROR, "Mirror", `Space ${targetSpace}`)
     }
 };
 

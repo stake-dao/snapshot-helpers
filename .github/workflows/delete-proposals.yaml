@@ -1,0 +1,33 @@
+name: "Delete proposals (manual)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run (print only) or execute (cancel on Snapshot)"
+        required: true
+        type: choice
+        options:
+          - dry-run
+          - execute
+        default: dry-run
+      proposal_ids:
+        description: "Comma-separated Snapshot proposal IDs to delete"
+        required: true
+        type: string
+
+env:
+  PK_1: ${{ secrets.PK_1 }}
+  PK_2: ${{ secrets.PK_2 }}
+  PK_3: ${{ secrets.PK_3 }}
+
+jobs:
+  delete-proposals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm run delete-proposals -- "$MODE" "$PROPOSAL_IDS"
+        env:
+          MODE: ${{ inputs.mode }}
+          PROPOSAL_IDS: ${{ inputs.proposal_ids }}
