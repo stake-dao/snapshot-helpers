@@ -4,6 +4,7 @@ import { CHAT_ID_ERROR, sendMessage } from "../../utils/telegram";
 import snapshot from "@snapshot-labs/snapshot.js";
 import { BytesLike, ethers } from "ethers";
 import { gql, GraphQLClient } from "graphql-request";
+import { nativeFetch } from "../mirror/request";
 import { GraphQLResponse } from "../replication/interfaces/graphql";
 
 class YFICreateProposal extends CreateProposal {
@@ -63,7 +64,7 @@ class YFICreateProposal extends CreateProposal {
             }
         }
         `;
-        const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql');
+        const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql', { fetch: nativeFetch });
         const graphqlResponse: GraphQLResponse = await graphqlClient.request(query);
 
         // If no more proposals, it's done

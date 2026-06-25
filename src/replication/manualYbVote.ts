@@ -12,6 +12,7 @@
  */
 
 import { gql, GraphQLClient } from "graphql-request";
+import { nativeFetch } from "../mirror/request";
 import * as dotenv from "dotenv";
 import {
     createPublicClient, createWalletClient, encodeFunctionData,
@@ -75,7 +76,7 @@ type VoteArg = {
 
 const buildVoteArgs = async (): Promise<{ voteArgs: VoteArg[]; titles: Map<string, string> }> => {
     // 1. Fetch active Snapshot proposals
-    const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql');
+    const graphqlClient = new GraphQLClient('https://hub.snapshot.org/graphql', { fetch: nativeFetch });
     const query = gql`
       {
         proposals(
