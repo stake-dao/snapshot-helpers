@@ -1,4 +1,4 @@
-import { SNAPSHOT_URL, nativeFetch } from "./request";
+import { SNAPSHOT_URL, nativeFetch, requestWithRetry } from "./request";
 import { GraphQLClient, gql } from "graphql-request";
 
 // https://github.com/snapshot-labs/snapshot.js/blob/master/src/schemas/proposal.json
@@ -54,3 +54,29 @@ export const fetchNbActiveProtocolProposal = async (author: string) => {
     })) as any;
     return result.proposals.length;
 };
+
+const QUERY_ACTIVE_BY_SPACE = gql`
+query ProposalsBySpace($space: String!) {
+    proposals(
+      where: {
+        space: $space
+        state: "active"
+      }
+      first: 1000
+      orderBy: "created"
+      orderDirection: desc
+    ) {
+      id
+      title
+    }
+  }
+`;
+
+export const fetchActiveProposalsInSpace = async (space: string): Promise<{ id: string; title: string }[]> => {
+    const result = (await requestWithRetry(`${SNAPSHOT_URL}/graphql`, QUERY_ACTIVE_BY_SPACE, { space })) as any;
+    return result.proposals;
+};
+
+// Pure: is there already an active proposal with this exact title in the space?
+export const hasProposalWithTitle = (proposals: { title: string }[], title: string): boolean =>
+    proposals.some((p) => p.title === title);
