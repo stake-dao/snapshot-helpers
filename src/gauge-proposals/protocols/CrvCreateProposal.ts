@@ -16,7 +16,7 @@ export class CrvCreateProposal extends CreateProposal {
     private readonly ARBITRUM_VSDCRV_GAUGE = "0xf1bb643f953836725c6e48bdd6f1816f871d3e07";
     private readonly POLYGON_VSDCRV_GAUGE = "0x8ad6f98184a0cb79887244b4e7e8beb1b4ba26d4";
 
-    private readonly FUNDRAISING_GAUGES = [{ address: "0x93B823e54959635ccAbfcf1B313B2Ad2785BFe95", name:"Fundraising" }];
+    private readonly FUNDRAISING_GAUGES = [{ address: "0x93B823e54959635ccAbfcf1B313B2Ad2785BFe95", name:"veFunder-sDolaLLv1" }];
 
     public canExecute(): boolean {
         return moment().isoWeek() % 2 !== 0;
