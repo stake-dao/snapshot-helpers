@@ -41,7 +41,7 @@ const main = async () => {
     const client = new snapshot.Client712(SNAPSHOT_URL);
     const gqlClient = new GraphQLClient(`${SNAPSHOT_URL}/graphql`, { fetch: nativeFetch });
 
-    const wallets = [process.env.PK_1, process.env.PK_2, process.env.PK_3]
+    const wallets = [process.env.PK_1, process.env.PK_2, process.env.PK_3, process.env.PRIVATE_KEY]
         .filter(Boolean)
         .map((pk) => new Wallet(pk as string));
 
