@@ -78,7 +78,9 @@ export const createProposal = async ({ payload }: any) => {
         // client throws reading the response (ERR_STREAM_PREMATURE_CLOSE). That
         // used to make the loop fail over to the next key and recreate the same
         // proposal, once per key. Re-check the target space before each attempt
-        // so a proposal that already landed is never duplicated.
+        // so a proposal that already landed is never duplicated. The match is
+        // restricted to proposals created in the last DUPLICATE_WINDOW seconds:
+        // an older same-title proposal is another source vote, not our write.
         if (hasProposalWithTitle(await fetchActiveProposalsInSpace(targetSpace), title)) {
             console.log("Proposal already active in " + targetSpace + ", skip: " + title);
             created = true;

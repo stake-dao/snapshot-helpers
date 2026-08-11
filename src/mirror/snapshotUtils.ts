@@ -68,15 +68,26 @@ query ProposalsBySpace($space: String!) {
     ) {
       id
       title
+      created
     }
   }
 `;
 
-export const fetchActiveProposalsInSpace = async (space: string): Promise<{ id: string; title: string }[]> => {
+// The guard only protects against a write that just landed on the hub, so a
+// match older than this window is a genuinely different proposal that happens
+// to share the same title (ex: two Curve DAO votes with identical text but
+// different vote ids) and must still be mirrored.
+export const DUPLICATE_WINDOW = 2 * 3600;
+
+export const fetchActiveProposalsInSpace = async (space: string): Promise<{ id: string; title: string; created: number }[]> => {
     const result = (await requestWithRetry(`${SNAPSHOT_URL}/graphql`, QUERY_ACTIVE_BY_SPACE, { space })) as any;
     return result.proposals;
 };
 
-// Pure: is there already an active proposal with this exact title in the space?
-export const hasProposalWithTitle = (proposals: { title: string }[], title: string): boolean =>
-    proposals.some((p) => p.title === title);
+// Pure: is there already an active proposal with this exact title in the space,
+// created within the last DUPLICATE_WINDOW seconds?
+export const hasProposalWithTitle = (
+    proposals: { title: string; created: number }[],
+    title: string,
+    now: number = Math.floor(Date.now() / 1000),
+): boolean => proposals.some((p) => p.title === title && Math.abs(now - p.created) <= DUPLICATE_WINDOW);
