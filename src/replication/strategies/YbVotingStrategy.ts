@@ -123,8 +123,9 @@ export class YbVotingStrategy implements IVotingStrategy {
             const abstainPercentage = Number(tally.abstain * BigInt(100) / total);
 
             message += `✅ ${vote.proposalTitle}\n`;
-            message += `Result : Abstain ${abstainPercentage.toFixed(2)} - Yes ${yeaPercentage.toFixed(2)}% - No ${nayPercentage}%\n\n`;
+            message += `Result : Abstain ${abstainPercentage.toFixed(2)}% - Yes ${yeaPercentage.toFixed(2)}% - No ${nayPercentage}%\n\n`;
         }
-        return `Tx : <a href="https://etherscan.io/tx/${txHash}">etherscan.io</a>`;
+        message += `Tx : <a href="https://etherscan.io/tx/${txHash}">etherscan.io</a>`;
+        return message;
     }
 }
