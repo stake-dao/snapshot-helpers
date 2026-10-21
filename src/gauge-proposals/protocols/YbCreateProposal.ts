@@ -1,4 +1,3 @@
-import axios from "axios";
 import moment from "moment";
 import * as dotenv from "dotenv";
 import { CreateProposal } from "../createProposal";
@@ -33,16 +32,8 @@ export class YbCreateProposal extends CreateProposal {
         return SD_YB_SPACE;
     }
 
-    protected async getGauges(snapshotBlock: number): Promise<string[]> {
-        // Using native fetch to get gauges data
+    protected async getGauges(_snapshotBlock: number): Promise<string[]> {
         const gauges = await fetchHubGauges('yb');
-
-        const responses: string[] = [];
-
-        for (const gauge of gauges) {
-            responses.push(`${gauge.name} - ${gauge.chainId}-${gauge.gauge.toLowerCase()}`);
-        }
-
-        return responses;
+        return gauges.map((gauge) => `${gauge.name} - ${gauge.chainId}-${gauge.gauge.toLowerCase()}`);
     }
 }
