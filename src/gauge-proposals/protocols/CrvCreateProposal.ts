@@ -5,6 +5,7 @@ import snapshot from "@snapshot-labs/snapshot.js";
 import { BytesLike, ethers } from "ethers";
 import * as dotenv from "dotenv";
 import { CreateProposal } from "../createProposal";
+import { fetchHubGauges } from "../hubGauges";
 import { sleep } from "../../../utils/sleep";
 import { CHAT_ID_ERROR, sendMessage } from "../../../utils/telegram";
 
@@ -115,26 +116,22 @@ export class CrvCreateProposal extends CreateProposal {
     protected async getGauges(snapshotBlock: number): Promise<string[]> {
 
         // Using native fetch to get gauges data
-        const [gaugesResponse, chainlistResponse] = await Promise.all([
-            fetch("https://votemarket-api.contact-69d.workers.dev/curve/gauges"),
+        const [gauges, chainlistResponse] = await Promise.all([
+            fetchHubGauges('curve'),
             fetch("https://chainlist.org/rpcs.json")
         ])
 
 
         // Fetch does not throw an error for non-200 status codes automatically, so we check it manually
-        if (!gaugesResponse.ok) {
-            throw new Error(`Failed to fetch gauges: ${gaugesResponse.statusText}`);
-        }
         if (!chainlistResponse.ok) {
             throw new Error(`Failed to fetch chainlist: ${chainlistResponse.statusText}`);
         }
 
-        const data = await gaugesResponse.json();
         const chainlist = await chainlistResponse.json();
 
         const responses: string[] = [];
 
-        const gaugesNotKilled = data.gauges.filter((g) => g.isKilled === false);
+        const gaugesNotKilled = gauges.filter((g) => g.isKilled === false);
 
         for (const gauge of gaugesNotKilled) {
             let pool = gauge.pool;
