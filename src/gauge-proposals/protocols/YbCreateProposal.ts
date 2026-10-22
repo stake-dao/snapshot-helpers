@@ -1,7 +1,7 @@
+import axios from "axios";
 import moment from "moment";
 import * as dotenv from "dotenv";
 import { CreateProposal } from "../createProposal";
-import { fetchHubGauges } from "../hubGauges";
 import { SD_YB_SPACE } from "../../mirror/spaces";
 
 dotenv.config();
@@ -32,8 +32,23 @@ export class YbCreateProposal extends CreateProposal {
         return SD_YB_SPACE;
     }
 
-    protected async getGauges(_snapshotBlock: number): Promise<string[]> {
-        const gauges = await fetchHubGauges('yb');
-        return gauges.map((gauge) => `${gauge.name} - ${gauge.chainId}-${gauge.gauge.toLowerCase()}`);
+    protected async getGauges(snapshotBlock: number): Promise<string[]> {
+        // Using native fetch to get gauges data
+        const response = await fetch(`https://hub.stakedao.org/v1/votemarket/yb/gauges`);
+
+        // Fetch does not throw an error for non-200 status codes automatically, so we check it manually
+        if (!response.ok) {
+            throw new Error(`Failed to fetch gauges: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        const responses: string[] = [];
+
+        for (const gauge of data.gauges) {
+            responses.push(`${gauge.name} - ${gauge.chainId}-${gauge.gauge.toLowerCase()}`);
+        }
+
+        return responses;
     }
 }
