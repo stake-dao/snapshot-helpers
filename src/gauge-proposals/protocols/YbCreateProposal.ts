@@ -34,7 +34,7 @@ export class YbCreateProposal extends CreateProposal {
 
     protected async getGauges(snapshotBlock: number): Promise<string[]> {
         // Using native fetch to get gauges data
-        const response = await fetch(`https://votemarket-api.contact-69d.workers.dev/yb/gauges`);
+        const response = await fetch(`https://hub.stakedao.org/v1/votemarket/yb/gauges`);
 
         // Fetch does not throw an error for non-200 status codes automatically, so we check it manually
         if (!response.ok) {
