@@ -6,6 +6,7 @@ on:
     - cron: '0 2 * * 4'
 
 env:
+  DATA_HUB_URL: ${{ secrets.DATA_HUB_URL }}
   HUB: ${{ secrets.HUB }}
   PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
   VOTE_PRIVATE_KEY: ${{ secrets.VOTE_PRIVATE_KEY }}

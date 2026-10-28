@@ -5,6 +5,7 @@ import snapshot from "@snapshot-labs/snapshot.js";
 import { BytesLike, ethers } from "ethers";
 import * as dotenv from "dotenv";
 import { CreateProposal } from "../createProposal";
+import { getDataHubUrl } from "../../../utils/dataHub";
 import { sleep } from "../../../utils/sleep";
 import { CHAT_ID_ERROR, sendMessage } from "../../../utils/telegram";
 
@@ -116,7 +117,7 @@ export class CrvCreateProposal extends CreateProposal {
 
         // Using native fetch to get gauges data
         const [gaugesResponse, chainlistResponse] = await Promise.all([
-            fetch("https://votemarket-api.contact-69d.workers.dev/curve/gauges"),
+            fetch(getDataHubUrl("/v1/votemarket/curve/gauges")),
             fetch("https://chainlist.org/rpcs.json")
         ])
 
